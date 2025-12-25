@@ -1,16 +1,19 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Vote, Users, TrendingUp, MapPin } from "lucide-react";
+import { ArrowRight, Vote, Users, TrendingUp, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/hooks/useLanguage";
 import heroImage from "@/assets/hero-nigerians.jpg";
 
-const stats = [
-  { icon: Vote, value: "2.5K+", label: "Active Polls" },
-  { icon: Users, value: "1.2M+", label: "Users" },
-  { icon: TrendingUp, value: "89K", label: "Votes Today" },
-  { icon: MapPin, value: "36 + FCT", label: "States Covered" },
-];
-
 export function HeroSection() {
+  const { t } = useLanguage();
+  
+  const stats = [
+    { icon: Vote, value: "2.5K+", label: t("hero.stats.polls") },
+    { icon: Users, value: "1.2M+", label: t("hero.stats.users") },
+    { icon: TrendingUp, value: "89K", label: t("hero.stats.votes") },
+    { icon: MapPin, value: "36 + FCT", label: "States" },
+  ];
+
   return (
     <section className="relative overflow-hidden">
       {/* Background */}
@@ -30,28 +33,12 @@ export function HeroSection() {
 
             {/* Heading */}
             <h1 className="font-poppins text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-extrabold text-primary-foreground leading-tight">
-              Wetin Naija
-              <br />
-              <span className="relative inline-block">
-                Dey Think?
-                <svg
-                  className="absolute -bottom-1 left-0 w-full h-3"
-                  viewBox="0 0 200 12"
-                  fill="none"
-                >
-                  <path
-                    d="M2 10C50 2 150 2 198 10"
-                    stroke="hsl(var(--naija-gold))"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
+              {t("hero.title")}
             </h1>
 
             {/* Description */}
             <p className="text-base sm:text-lg text-primary-foreground/90 max-w-md mx-auto lg:mx-0">
-              Join millions of Nigerians sharing their voice on politics, entertainment, economy, and more. Create polls, vote, and see wetin the nation think!
+              {t("hero.subtitle")}
             </p>
 
             {/* CTA Buttons */}
@@ -61,18 +48,19 @@ export function HeroSection() {
                   size="lg"
                   className="btn-touch gap-2 bg-card text-primary hover:bg-card/90 shadow-lg w-full sm:w-auto font-semibold"
                 >
-                  <ArrowLeft className="h-5 w-5" />
-                  Create Your Poll
+                  {t("hero.cta")}
                 </Button>
               </Link>
-              <Button
-                variant="outline"
-                size="lg"
-                className="btn-touch gap-2 bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 w-full sm:w-auto font-semibold"
-              >
-                Explore Polls
-                <ArrowRight className="h-5 w-5" />
-              </Button>
+              <Link to="/polls">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="btn-touch gap-2 bg-transparent border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 w-full sm:w-auto font-semibold"
+                >
+                  {t("hero.exploreCta")}
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
             </div>
           </div>
 

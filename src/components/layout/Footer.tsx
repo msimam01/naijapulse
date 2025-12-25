@@ -1,8 +1,19 @@
 import { Link } from "react-router-dom";
-import { Vote, Twitter, Instagram, Facebook, Mail, MapPin } from "lucide-react";
+import { Vote, Twitter, Instagram, Facebook, Mail, MapPin, Download } from "lucide-react";
+import { useLanguage } from "@/hooks/useLanguage";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const { t } = useLanguage();
+
+  const categories = [
+    { href: "/category/politics", label: t("category.politics") },
+    { href: "/category/entertainment", label: t("category.entertainment") },
+    { href: "/category/economy", label: t("category.economy") },
+    { href: "/category/sports", label: t("category.sports") },
+    { href: "/category/lifestyle", label: t("category.lifestyle") },
+    { href: "/category/technology", label: t("category.technology") },
+  ];
 
   return (
     <footer className="bg-card border-t border-border">
@@ -21,7 +32,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-muted-foreground text-sm mb-4 max-w-xs">
-              Nigeria's premier polling platform. Share your voice, see what the nation thinks.
+              {t("footer.tagline")}
             </p>
             <div className="flex items-center gap-3">
               <a
@@ -50,66 +61,54 @@ export function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-poppins font-semibold text-foreground mb-4">Quick Links</h4>
+            <h4 className="font-poppins font-semibold text-foreground mb-4">{t("footer.quickLinks")}</h4>
             <ul className="space-y-3">
               <li>
                 <Link to="/" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Home
+                  {t("nav.home")}
+                </Link>
+              </li>
+              <li>
+                <Link to="/polls" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                  {t("nav.polls")}
                 </Link>
               </li>
               <li>
                 <Link to="/create" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Create Poll
+                  {t("nav.create")}
                 </Link>
               </li>
               <li>
                 <Link to="/dashboard" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  My Polls
+                  {t("nav.myPolls")}
                 </Link>
               </li>
               <li>
-                <a href="#categories" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Categories
-                </a>
+                <Link to="/install" className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-1.5">
+                  <Download className="h-3.5 w-3.5" />
+                  {t("nav.install")}
+                </Link>
               </li>
             </ul>
           </div>
 
           {/* Categories */}
           <div>
-            <h4 className="font-poppins font-semibold text-foreground mb-4">Categories</h4>
+            <h4 className="font-poppins font-semibold text-foreground mb-4">{t("footer.categories")}</h4>
             <ul className="space-y-3">
-              <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Politics
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Entertainment
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Economy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Sports
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm">
-                  Lifestyle
-                </a>
-              </li>
+              {categories.map((cat) => (
+                <li key={cat.href}>
+                  <Link to={cat.href} className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                    {cat.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h4 className="font-poppins font-semibold text-foreground mb-4">Contact Us</h4>
+            <h4 className="font-poppins font-semibold text-foreground mb-4">{t("footer.connect")}</h4>
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Mail className="h-4 w-4" />
@@ -128,15 +127,8 @@ export function Footer() {
       <div className="border-t border-border">
         <div className="container py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>© {currentYear} NaijaPulse. All rights reserved.</p>
-            <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-primary transition-colors">
-                Privacy Policy
-              </a>
-              <a href="#" className="hover:text-primary transition-colors">
-                Terms of Service
-              </a>
-            </div>
+            <p>© {currentYear} NaijaPulse. {t("footer.copyright")}</p>
+            <p className="text-xs">{t("footer.madeWith")}</p>
           </div>
         </div>
       </div>
