@@ -10,6 +10,9 @@ import CreatePoll from "./pages/CreatePoll";
 import PollView from "./pages/PollView";
 import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
+import AllPolls from "./pages/AllPolls";
+import CategoryPage from "./pages/CategoryPage";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,8 +29,11 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/create" element={<CreatePoll />} />
               <Route path="/poll/:id" element={<PollView />} />
+              <Route path="/polls" element={<AllPolls />} />
+              <Route path="/category/:category" element={<CategoryPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/install" element={<Install />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Layout>

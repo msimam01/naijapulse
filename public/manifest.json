@@ -1,0 +1,53 @@
+{
+  "name": "NaijaPulse",
+  "short_name": "NaijaPulse",
+  "description": "Nigeria's #1 Public Opinion & Polling Platform",
+  "theme_color": "#009A44",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["social", "news"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Create Poll",
+      "short_name": "Create",
+      "url": "/create",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "All Polls",
+      "short_name": "Polls",
+      "url": "/polls",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
