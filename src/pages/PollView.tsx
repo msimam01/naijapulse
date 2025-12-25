@@ -10,12 +10,15 @@ import {
   Send,
   Heart,
   Reply,
+  BarChart3,
+  PieChartIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { mockPolls, mockComments } from "@/data/mockPolls";
+import { ResultChart } from "@/components/polls/ResultChart";
 
 export default function PollView() {
   const { id } = useParams();
@@ -27,6 +30,7 @@ export default function PollView() {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const [chartType, setChartType] = useState<"pie" | "bar">("pie");
 
   const totalVotes = poll.options.reduce((acc, opt) => acc + opt.votes, 0);
 
@@ -169,6 +173,38 @@ export default function PollView() {
             >
               Submit My Vote
             </Button>
+          )}
+
+          {/* Result Chart */}
+          {showResults && (
+            <div className="mb-6 p-4 bg-secondary/30 rounded-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground">Results</h3>
+                <div className="flex items-center gap-1 bg-background rounded-lg p-1">
+                  <button
+                    onClick={() => setChartType("pie")}
+                    className={`p-2 rounded-md transition-colors ${
+                      chartType === "pie"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <PieChartIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setChartType("bar")}
+                    className={`p-2 rounded-md transition-colors ${
+                      chartType === "bar"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <BarChart3 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <ResultChart options={poll.options} type={chartType} />
+            </div>
           )}
 
           {/* Stats */}
