@@ -3,7 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { LanguageProvider } from "@/hooks/useLanguage";
 import { Layout } from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import CreatePoll from "./pages/CreatePoll";
@@ -18,29 +20,33 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/create" element={<CreatePoll />} />
-              <Route path="/poll/:id" element={<PollView />} />
-              <Route path="/polls" element={<AllPolls />} />
-              <Route path="/category/:category" element={<CategoryPage />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin" element={<AdminPanel />} />
-              <Route path="/install" element={<Install />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Layout>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/create" element={<CreatePoll />} />
+                  <Route path="/poll/:id" element={<PollView />} />
+                  <Route path="/polls" element={<AllPolls />} />
+                  <Route path="/category/:category" element={<CategoryPage />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/admin" element={<AdminPanel />} />
+                  <Route path="/install" element={<Install />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Layout>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

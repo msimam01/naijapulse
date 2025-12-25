@@ -1,29 +1,32 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Clock, TrendingUp, Flame } from "lucide-react";
+import { ArrowRight, Clock, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Poll } from "@/components/polls/PollCard";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface TrendingPollsProps {
   polls: Poll[];
 }
 
 export function TrendingPolls({ polls }: TrendingPollsProps) {
+  const { t } = useLanguage();
+
   return (
     <section className="bg-secondary/30 py-12 sm:py-16">
       <div className="container">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="font-poppins font-bold text-2xl sm:text-3xl text-foreground">
-              Trending Now
+              {t("section.trending")}
             </h2>
             <p className="text-muted-foreground mt-1">
-              Most active polls this week
+              {t("section.trendingDesc")}
             </p>
           </div>
           <Link to="/polls" className="hidden sm:block">
             <Button variant="ghost" className="gap-2 text-primary">
-              View All
+              {t("section.viewAll")}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
@@ -53,7 +56,7 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
                     {poll.isTrending && (
                       <Badge className="text-xs bg-destructive/10 text-destructive border-destructive/20 gap-1">
                         <Flame className="h-3 w-3" />
-                        Hot
+                        {t("poll.trending")}
                       </Badge>
                     )}
                   </div>
@@ -70,7 +73,7 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
 
                 {/* Vote Count */}
                 <p className="text-sm text-muted-foreground mb-4">
-                  {poll.totalVotes.toLocaleString()} votes
+                  {poll.totalVotes.toLocaleString()} {t("poll.votes")}
                 </p>
 
                 {/* Options Preview */}
@@ -92,7 +95,7 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
                           />
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {option.votes.toLocaleString()} votes
+                          {option.votes.toLocaleString()} {t("poll.votes")}
                         </p>
                       </div>
                     );
@@ -104,7 +107,7 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
                   variant="outline"
                   className="w-full mt-4 gap-2 group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-all"
                 >
-                  Vote Now
+                  {t("poll.vote")}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
@@ -116,7 +119,7 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
         <div className="mt-6 sm:hidden">
           <Link to="/polls">
             <Button variant="outline" className="w-full gap-2">
-              View All Trending Polls
+              {t("section.viewAll")}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>

@@ -3,12 +3,15 @@ import { ArrowRight, TrendingUp, MessageCircle, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Poll } from "@/components/polls/PollCard";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface FeaturedPollsProps {
   polls: Poll[];
 }
 
 export function FeaturedPolls({ polls }: FeaturedPollsProps) {
+  const { t } = useLanguage();
+  
   // Get the first featured poll (trending one) for the large card
   const mainPoll = polls[0];
   const sidePollsData = polls.slice(1, 3);
@@ -20,15 +23,15 @@ export function FeaturedPolls({ polls }: FeaturedPollsProps) {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="font-poppins font-bold text-2xl sm:text-3xl text-foreground">
-            Featured Polls
+            {t("section.featured")}
           </h2>
           <p className="text-muted-foreground mt-1">
-            Hot topics Nigerians are discussing right now
+            {t("section.featuredDesc")}
           </p>
         </div>
         <Link to="/polls" className="hidden sm:block">
           <Button variant="ghost" className="gap-2 text-primary">
-            View All
+            {t("section.viewAll")}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
@@ -47,7 +50,7 @@ export function FeaturedPolls({ polls }: FeaturedPollsProps) {
               <div className="flex items-center justify-between">
                 <Badge className="bg-naija-gold text-foreground border-none gap-1">
                   <TrendingUp className="h-3 w-3" />
-                  Trending
+                  {t("poll.trending")}
                 </Badge>
                 <Badge variant="outline" className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20">
                   {mainPoll.category}
@@ -62,15 +65,15 @@ export function FeaturedPolls({ polls }: FeaturedPollsProps) {
                 <div className="flex items-center gap-4 text-sm text-primary-foreground/80">
                   <span className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    {mainPoll.totalVotes.toLocaleString()} votes
+                    {mainPoll.totalVotes.toLocaleString()} {t("poll.votes")}
                   </span>
                   <span className="flex items-center gap-1">
                     <MessageCircle className="h-4 w-4" />
-                    {mainPoll.commentsCount} comments
+                    {mainPoll.commentsCount} {t("poll.comments")}
                   </span>
                 </div>
                 <Button className="w-full sm:w-auto btn-touch bg-card text-primary hover:bg-card/90">
-                  View Poll & Vote
+                  {t("poll.vote")}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
@@ -97,7 +100,7 @@ export function FeaturedPolls({ polls }: FeaturedPollsProps) {
                 {poll.isTrending && (
                   <Badge className="text-xs bg-naija-gold/20 text-foreground border-naija-gold/30 gap-1">
                     <TrendingUp className="h-3 w-3" />
-                    Hot
+                    {t("poll.trending")}
                   </Badge>
                 )}
               </div>
@@ -107,7 +110,7 @@ export function FeaturedPolls({ polls }: FeaturedPollsProps) {
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
-                  {poll.totalVotes.toLocaleString()} votes
+                  {poll.totalVotes.toLocaleString()} {t("poll.votes")}
                 </span>
                 <span className="text-primary font-medium">{poll.timeRemaining}</span>
               </div>
@@ -120,7 +123,7 @@ export function FeaturedPolls({ polls }: FeaturedPollsProps) {
       <div className="mt-6 sm:hidden">
         <Link to="/polls">
           <Button variant="outline" className="w-full gap-2">
-            View All Featured Polls
+            {t("section.viewAll")}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>

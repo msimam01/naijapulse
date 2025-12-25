@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Search, Menu, X, Globe, User, Plus } from "lucide-react";
+import { Search, Menu, X, Globe, User, Plus, LayoutGrid, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useLanguage } from "@/hooks/useLanguage";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +18,23 @@ interface HeaderProps {
 
 export function Header({ onLoginClick }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [language, setLanguage] = useState<"en" | "pidgin">("en");
   const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
+  const { language, setLanguage, t } = useLanguage();
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/dashboard", label: "My Polls" },
+    { href: "/", label: t("nav.home") },
+    { href: "/polls", label: t("nav.polls") },
+    { href: "/dashboard", label: t("nav.myPolls") },
+  ];
+
+  const categoryLinks = [
+    { href: "/category/politics", label: t("category.politics") },
+    { href: "/category/entertainment", label: t("category.entertainment") },
+    { href: "/category/economy", label: t("category.economy") },
+    { href: "/category/lifestyle", label: t("category.lifestyle") },
+    { href: "/category/sports", label: t("category.sports") },
+    { href: "/category/technology", label: t("category.technology") },
   ];
 
   return (
@@ -45,7 +56,7 @@ export function Header({ onLoginClick }: HeaderProps) {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search polls..."
+              placeholder={t("common.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-secondary border-0 focus-visible:ring-primary"
@@ -54,12 +65,12 @@ export function Header({ onLoginClick }: HeaderProps) {
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               to={link.href}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 location.pathname === link.href
                   ? "bg-secondary text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
@@ -68,6 +79,29 @@ export function Header({ onLoginClick }: HeaderProps) {
               {link.label}
             </Link>
           ))}
+          
+          {/* Categories Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  location.pathname.startsWith("/category")
+                    ? "bg-secondary text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                }`}
+              >
+                <LayoutGrid className="h-4 w-4" />
+                {t("nav.categories")}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {categoryLinks.map((link) => (
+                <DropdownMenuItem key={link.href} asChild>
+                  <Link to={link.href}>{link.label}</Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
 
         {/* Right Actions */}
@@ -82,12 +116,12 @@ export function Header({ onLoginClick }: HeaderProps) {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setLanguage("en")}>
                 <span className={language === "en" ? "font-semibold text-primary" : ""}>
-                  English
+                  🇬🇧 English
                 </span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setLanguage("pidgin")}>
                 <span className={language === "pidgin" ? "font-semibold text-primary" : ""}>
-                  Pidgin
+                  🇳🇬 Pidgin
                 </span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -99,7 +133,7 @@ export function Header({ onLoginClick }: HeaderProps) {
           <Link to="/create" className="hidden md:block">
             <Button variant="default" className="btn-touch gap-2">
               <Plus className="h-4 w-4" />
-              Create Poll
+              {t("nav.create")}
             </Button>
           </Link>
 
@@ -110,14 +144,14 @@ export function Header({ onLoginClick }: HeaderProps) {
             className="hidden sm:flex gap-2 btn-touch"
           >
             <User className="h-4 w-4" />
-            Login
+            {t("nav.login")}
           </Button>
 
           {/* Mobile Menu Toggle */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden h-10 w-10"
+            className="lg:hidden h-10 w-10"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -127,14 +161,14 @@ export function Header({ onLoginClick }: HeaderProps) {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden border-t border-border bg-background animate-slide-up">
+        <div className="lg:hidden border-t border-border bg-background animate-slide-up">
           <div className="container py-4 space-y-4">
             {/* Mobile Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search polls..."
+                placeholder={t("common.search")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-secondary border-0"
@@ -157,20 +191,51 @@ export function Header({ onLoginClick }: HeaderProps) {
                   {link.label}
                 </Link>
               ))}
+              
+              {/* Categories Header */}
+              <div className="px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-2">
+                {t("nav.categories")}
+              </div>
+              
+              {/* Category Links */}
+              <div className="grid grid-cols-2 gap-1">
+                {categoryLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      location.pathname === link.href
+                        ? "bg-secondary text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
             </nav>
 
-            {/* Mobile Login */}
-            <Button
-              variant="outline"
-              onClick={() => {
-                onLoginClick();
-                setIsMenuOpen(false);
-              }}
-              className="w-full btn-touch"
-            >
-              <User className="h-4 w-4 mr-2" />
-              Login
-            </Button>
+            {/* Mobile Actions */}
+            <div className="flex gap-2 pt-2">
+              <Link to="/create" className="flex-1" onClick={() => setIsMenuOpen(false)}>
+                <Button className="w-full btn-touch gap-2">
+                  <Plus className="h-4 w-4" />
+                  {t("nav.create")}
+                </Button>
+              </Link>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onLoginClick();
+                  setIsMenuOpen(false);
+                }}
+                className="flex-1 btn-touch"
+              >
+                <User className="h-4 w-4 mr-2" />
+                {t("nav.login")}
+              </Button>
+            </div>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { SearchSection } from "@/components/home/SearchSection";
 import { FeaturedPolls } from "@/components/home/FeaturedPolls";
 import { ExploreCategories } from "@/components/home/ExploreCategories";
 import { TrendingPolls } from "@/components/home/TrendingPolls";
+import { SEO } from "@/components/SEO";
 import { mockPolls } from "@/data/mockPolls";
 
 export default function Index() {
@@ -21,6 +22,8 @@ export default function Index() {
 
   return (
     <div className="min-h-screen">
+      <SEO />
+      
       {/* Hero Section with Image and Stats */}
       <HeroSection />
 

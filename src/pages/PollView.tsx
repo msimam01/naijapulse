@@ -17,22 +17,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/hooks/useLanguage";
 import { mockPolls, mockComments } from "@/data/mockPolls";
 import { ResultChart } from "@/components/polls/ResultChart";
+import { SEO } from "@/components/SEO";
 
 export default function PollView() {
   const { id } = useParams();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const poll = mockPolls.find((p) => p.id === id) || mockPolls[0];
+  const totalVotes = poll.options.reduce((acc, opt) => acc + opt.votes, 0);
 
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [chartType, setChartType] = useState<"pie" | "bar">("pie");
-
-  const totalVotes = poll.options.reduce((acc, opt) => acc + opt.votes, 0);
 
   const handleVote = () => {
     if (selectedOption === null) {
@@ -76,6 +78,13 @@ export default function PollView() {
 
   return (
     <div className="container py-6 sm:py-10">
+      <SEO
+        title={`${poll.title} | NaijaPulse`}
+        description={poll.question}
+        url={`/poll/${poll.id}`}
+        type="article"
+        keywords={`${poll.category}, Nigeria poll, ${poll.title}, vote`}
+      />
       <div className="max-w-3xl mx-auto">
         {/* Back Button */}
         <Link
@@ -83,7 +92,7 @@ export default function PollView() {
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to polls
+          {t("pollView.back")}
         </Link>
 
         {/* Poll Card */}
