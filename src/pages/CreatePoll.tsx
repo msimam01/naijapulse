@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/hooks/useLanguage";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
 
 const categories = [
   "Politics",
@@ -94,7 +96,7 @@ export default function CreatePoll() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
@@ -102,18 +104,96 @@ export default function CreatePoll() {
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-    toast({
-      title: language === "pidgin" ? "Poll Don Ready! 🎉" : "Poll Created! 🎉",
-      description: language === "pidgin" 
-        ? "Your poll don dey live, people fit vote now."
-        : "Your poll is now live and ready for votes.",
-    });
+      if (userError || !user) {
+        throw new Error('User not authenticated');
+      }
 
-    setIsSubmitting(false);
-    navigate("/");
+      // Check if tables exist first
+      const { error: testError } = await supabase.from('profiles').select('count').limit(1);
+
+      if (testError) {
+        throw new Error('Database tables not set up. Please run the SQL schema in Supabase dashboard first.');
+      }
+
+      // Get user profile for display_name
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('Unable to fetch user profile. Please try logging out and back in.');
+      }
+
+      // Validate form
+      if (!formData.title.trim() || !formData.question.trim() || !formData.category) {
+        throw new Error('Please fill in all required fields');
+      }
+
+      const filteredOptions = formData.isYesNo
+        ? ['Yes', 'No']
+        : formData.options.filter(option => option.trim() !== '');
+
+      if (!formData.isYesNo && filteredOptions.length < 2) {
+        throw new Error('Please provide at least 2 options');
+      }
+
+      // Calculate duration_end
+      let durationEnd = null;
+      if (formData.duration !== '0') {
+        const days = parseInt(formData.duration);
+        durationEnd = new Date();
+        durationEnd.setDate(durationEnd.getDate() + days);
+      }
+
+      // Prepare poll data
+      const pollData = {
+        title: formData.title.trim(),
+        question: formData.question.trim(),
+        options: filteredOptions,
+        type: formData.isYesNo ? 'yesno' : 'multiple',
+        category: formData.category,
+        duration_end: durationEnd?.toISOString() || null,
+        creator_id: user.id,
+        creator_name: profile.display_name,
+      };
+
+      // Insert poll
+      const { data: poll, error: pollError } = await supabase
+        .from('polls')
+        .insert(pollData)
+        .select('id')
+        .single();
+
+      if (pollError) {
+        throw pollError;
+      }
+
+      toast({
+        title: language === "pidgin" ? "Poll Don Ready! 🎉" : "Poll Created! 🎉",
+        description: language === "pidgin"
+          ? "Your poll don dey live, people fit vote now."
+          : "Your poll is now live and ready for votes.",
+      });
+
+      // Navigate to the new poll
+      navigate(`/poll/${poll.id}`);
+
+    } catch (error: any) {
+      console.error('Error creating poll:', error);
+      toast({
+        title: language === "pidgin" ? "Error" : "Error",
+        description: error.message || (language === "pidgin" ? "Something go wrong, try again" : "Something went wrong, please try again"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const displayOptions = formData.isYesNo ? ["Yes", "No"] : formData.options;

@@ -2,6 +2,23 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
+// Helper function to extract display name from email or phone
+const generateDisplayName = (user: User): string => {
+  if (user.email) {
+    // Extract username from email (e.g., "john.doe@gmail.com" → "John Doe")
+    const username = user.email.split('@')[0];
+    return username
+      .split(/[._-]/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  } else if (user.phone) {
+    // Use last 6 digits of phone number
+    const lastSix = user.phone.slice(-6);
+    return `Naija User ${lastSix}`;
+  }
+  return "Naija User";
+};
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -23,9 +40,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+
+        // Auto-create profile on authentication events
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+          const displayName = generateDisplayName(session.user);
+
+          try {
+            // Check if profile already exists
+            const { data: existingProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', session.user.id)
+              .single();
+
+            if (!existingProfile) {
+              // Create new profile
+              const { error } = await supabase.from('profiles').insert({
+                id: session.user.id,
+                display_name: displayName,
+              });
+
+              
+            } else {
+              // Update existing profile (in case display_name changed)
+              const { error } = await supabase.from('profiles').upsert({
+                id: session.user.id,
+                display_name: displayName,
+              });
+
+              
+            }
+          } catch (error) {
+            // console.error('Error in profile creation/update:', error);
+          }
+        }
+
         setIsLoading(false);
       }
     );
