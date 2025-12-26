@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { LanguageProvider } from "@/hooks/useLanguage";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import CreatePoll from "./pages/CreatePoll";
@@ -24,25 +25,27 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
         <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/create" element={<CreatePoll />} />
-                  <Route path="/poll/:id" element={<PollView />} />
-                  <Route path="/polls" element={<AllPolls />} />
-                  <Route path="/category/:category" element={<CategoryPage />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/admin" element={<AdminPanel />} />
-                  <Route path="/install" element={<Install />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Layout>
-            </BrowserRouter>
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/create" element={<CreatePoll />} />
+                    <Route path="/poll/:id" element={<PollView />} />
+                    <Route path="/polls" element={<AllPolls />} />
+                    <Route path="/category/:category" element={<CategoryPage />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/admin" element={<AdminPanel />} />
+                    <Route path="/install" element={<Install />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Layout>
+              </BrowserRouter>
+            </TooltipProvider>
+          </AuthProvider>
         </ThemeProvider>
       </LanguageProvider>
     </QueryClientProvider>

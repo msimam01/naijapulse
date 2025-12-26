@@ -7,8 +7,11 @@ import { ExploreCategories } from "@/components/home/ExploreCategories";
 import { TrendingPolls } from "@/components/home/TrendingPolls";
 import { SEO } from "@/components/SEO";
 import { mockPolls } from "@/data/mockPolls";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Index() {
+  const { isAuthenticated } = useAuth();
+
   // Get featured polls (first 3 polls, prioritize trending)
   const featuredPolls = [...mockPolls]
     .sort((a, b) => (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0))
@@ -39,14 +42,16 @@ export default function Index() {
       {/* Trending Polls */}
       <TrendingPolls polls={trendingPolls} />
 
-      {/* Floating Create Button - Mobile */}
-      <Link
-        to="/create"
-        className="fixed bottom-20 right-4 md:hidden z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-glow flex items-center justify-center animate-bounce-subtle"
-        aria-label="Create Poll"
-      >
-        <Plus className="h-6 w-6" />
-      </Link>
+      {/* Floating Create Button - Mobile (Only for authenticated users) */}
+      {isAuthenticated && (
+        <Link
+          to="/create"
+          className="fixed bottom-20 right-4 md:hidden z-40 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-glow flex items-center justify-center animate-bounce-subtle"
+          aria-label="Create Poll"
+        >
+          <Plus className="h-6 w-6" />
+        </Link>
+      )}
     </div>
   );
 }
