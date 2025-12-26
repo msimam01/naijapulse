@@ -87,10 +87,18 @@ const translations: Translations = {
   // Auth
   "auth.login": { en: "Login", pidgin: "Enter" },
   "auth.signup": { en: "Sign Up", pidgin: "Join" },
-  "auth.email": { en: "Email or Phone", pidgin: "Email or Phone" },
-  "auth.password": { en: "Password", pidgin: "Password" },
-  "auth.guest": { en: "Continue as Guest", pidgin: "Continue as Guest" },
-  "auth.forgotPassword": { en: "Forgot password?", pidgin: "You forget password?" },
+  "auth.email": { en: "Email Address", pidgin: "Email Address" },
+  "auth.phone": { en: "Phone Number", pidgin: "Phone Number" },
+  "auth.guest": { en: "Continue as Guest", pidgin: "Continue Without Login" },
+  "auth.sendCode": { en: "Send Code", pidgin: "Send Code" },
+  "auth.sendLink": { en: "Send Magic Link", pidgin: "Send Magic Link" },
+  "auth.verify": { en: "Verify & Login", pidgin: "Verify & Enter" },
+  "auth.signOut": { en: "Sign Out", pidgin: "Comot" },
+  "auth.codeSent": { en: "Code Sent!", pidgin: "Code don send!" },
+  "auth.checkPhone": { en: "Check your phone for the code", pidgin: "Check your phone for the code wey we send you" },
+  "auth.checkEmail": { en: "Check your email for the magic link", pidgin: "Check your email for the magic link" },
+  "auth.welcome": { en: "Welcome!", pidgin: "You don enter!" },
+  "auth.loginSuccess": { en: "You've successfully logged in.", pidgin: "You don login successfully. Oya make we dey go!" },
   
   // Common
   "common.search": { en: "Search polls...", pidgin: "Search polls..." },
