@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Search, Menu, X, Globe, User, Plus, LayoutGrid, Compass } from "lucide-react";
+import { Search, Menu, X, Globe, User, Plus, LayoutGrid, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface HeaderProps {
   onLoginClick: () => void;
@@ -21,6 +24,7 @@ export function Header({ onLoginClick }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
+  const { user, isAuthenticated, signOut, isLoading } = useAuth();
 
   const navLinks = [
     { href: "/", label: t("nav.home") },
@@ -36,6 +40,31 @@ export function Header({ onLoginClick }: HeaderProps) {
     { href: "/category/sports", label: t("category.sports") },
     { href: "/category/technology", label: t("category.technology") },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsMenuOpen(false);
+  };
+
+  const getUserInitials = () => {
+    if (user?.phone) {
+      return user.phone.slice(-2);
+    }
+    if (user?.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
+  const getUserDisplay = () => {
+    if (user?.phone) {
+      return user.phone;
+    }
+    if (user?.email) {
+      return user.email;
+    }
+    return language === "pidgin" ? "User" : "User";
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -129,23 +158,67 @@ export function Header({ onLoginClick }: HeaderProps) {
 
           <ThemeToggle />
 
-          {/* Create Poll - Desktop */}
-          <Link to="/create" className="hidden md:block">
-            <Button variant="default" className="btn-touch gap-2">
-              <Plus className="h-4 w-4" />
-              {t("nav.create")}
-            </Button>
-          </Link>
+          {/* Create Poll - Desktop (Only for authenticated users) */}
+          {isAuthenticated && (
+            <Link to="/create" className="hidden md:block">
+              <Button variant="default" className="btn-touch gap-2">
+                <Plus className="h-4 w-4" />
+                {t("nav.create")}
+              </Button>
+            </Link>
+          )}
 
-          {/* Login Button */}
-          <Button
-            variant="outline"
-            onClick={onLoginClick}
-            className="hidden sm:flex gap-2 btn-touch"
-          >
-            <User className="h-4 w-4" />
-            {t("nav.login")}
-          </Button>
+          {/* Auth Section */}
+          {isLoading ? (
+            <div className="h-10 w-10 rounded-full bg-secondary animate-pulse" />
+          ) : isAuthenticated ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium">{getUserDisplay()}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {language === "pidgin" ? "You don login" : "Logged in"}
+                  </p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="cursor-pointer">
+                    <User className="h-4 w-4 mr-2" />
+                    {t("nav.myPolls")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/create" className="cursor-pointer">
+                    <Plus className="h-4 w-4 mr-2" />
+                    {t("nav.create")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  {language === "pidgin" ? "Comot" : "Sign Out"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={onLoginClick}
+              className="hidden sm:flex gap-2 btn-touch"
+            >
+              <User className="h-4 w-4" />
+              {t("nav.login")}
+            </Button>
+          )}
 
           {/* Mobile Menu Toggle */}
           <Button
@@ -218,23 +291,35 @@ export function Header({ onLoginClick }: HeaderProps) {
 
             {/* Mobile Actions */}
             <div className="flex gap-2 pt-2">
-              <Link to="/create" className="flex-1" onClick={() => setIsMenuOpen(false)}>
-                <Button className="w-full btn-touch gap-2">
-                  <Plus className="h-4 w-4" />
-                  {t("nav.create")}
+              {isAuthenticated ? (
+                <>
+                  <Link to="/create" className="flex-1" onClick={() => setIsMenuOpen(false)}>
+                    <Button className="w-full btn-touch gap-2">
+                      <Plus className="h-4 w-4" />
+                      {t("nav.create")}
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    onClick={handleSignOut}
+                    className="btn-touch"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="default"
+                  onClick={() => {
+                    onLoginClick();
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex-1 btn-touch"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  {t("nav.login")}
                 </Button>
-              </Link>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  onLoginClick();
-                  setIsMenuOpen(false);
-                }}
-                className="flex-1 btn-touch"
-              >
-                <User className="h-4 w-4 mr-2" />
-                {t("nav.login")}
-              </Button>
+              )}
             </div>
           </div>
         </div>
