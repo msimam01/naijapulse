@@ -151,6 +151,44 @@ export default function CreatePoll() {
         durationEnd.setDate(durationEnd.getDate() + days);
       }
 
+      // Upload image if provided
+      let imageUrl = null;
+      if (formData.image) {
+        // Validate file
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(formData.image.type)) {
+          throw new Error('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+        }
+
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (formData.image.size > maxSize) {
+          throw new Error('Image must be smaller than 5MB');
+        }
+
+        // Generate unique filename
+        const fileExt = formData.image.name.split('.').pop();
+        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('poll-images')
+          .upload(`public/${fileName}`, formData.image, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          throw new Error('Failed to upload image: ' + uploadError.message);
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from('poll-images')
+          .getPublicUrl(`public/${fileName}`);
+
+        imageUrl = publicUrlData.publicUrl;
+      }
+
       // Prepare poll data
       const pollData = {
         title: formData.title.trim(),
@@ -161,6 +199,7 @@ export default function CreatePoll() {
         duration_end: durationEnd?.toISOString() || null,
         creator_id: user.id,
         creator_name: profile.display_name,
+        image_url: imageUrl,
       };
 
       // Insert poll
@@ -184,11 +223,12 @@ export default function CreatePoll() {
       // Navigate to the new poll
       navigate(`/poll/${poll.id}`);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating poll:', error);
+      const errorMessage = error instanceof Error ? error.message : (language === "pidgin" ? "Something go wrong, try again" : "Something went wrong, please try again");
       toast({
         title: language === "pidgin" ? "Error" : "Error",
-        description: error.message || (language === "pidgin" ? "Something go wrong, try again" : "Something went wrong, please try again"),
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

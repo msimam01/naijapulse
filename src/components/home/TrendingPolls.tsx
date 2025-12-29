@@ -35,7 +35,10 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {polls.map((poll, index) => {
             const topOptions = poll.options.slice(0, 3);
-            const totalVotes = poll.options.reduce((acc, opt) => acc + opt.votes, 0);
+            const hasVoteData = poll.options.length > 0 && typeof poll.options[0] === 'object' && 'votes' in poll.options[0];
+            const totalVotes = hasVoteData
+              ? (poll.options as { text: string; votes?: number }[]).reduce((acc, opt) => acc + (opt.votes || 0), 0)
+              : poll.totalVotes;
 
             return (
               <Link
@@ -79,7 +82,8 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
                 {/* Options Preview */}
                 <div className="space-y-3">
                   {topOptions.map((option, idx) => {
-                    const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
+                    const optionVotes = hasVoteData ? (option as { text: string; votes?: number }).votes || 0 : 0;
+                    const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
                     return (
                       <div key={idx}>
                         <div className="flex items-center justify-between text-sm mb-1">
@@ -95,7 +99,7 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
                           />
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {option.votes.toLocaleString()} {t("poll.votes")}
+                          {optionVotes.toLocaleString()} {t("poll.votes")}
                         </p>
                       </div>
                     );

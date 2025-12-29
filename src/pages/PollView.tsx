@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   Clock,
@@ -23,6 +23,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { ResultChart } from "@/components/polls/ResultChart";
 import { SEO } from "@/components/SEO";
+import CommentSection from "@/components/comments/CommentSection";
+import { ShareButtons } from "@/components/ui/ShareButtons";
 
 type Poll = Tables<'polls'>;
 type Vote = Tables<'votes'>;
@@ -46,11 +48,11 @@ export default function PollView() {
   const [hasVoted, setHasVoted] = useState(false);
   const [userVote, setUserVote] = useState<Vote | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [comment, setComment] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [chartType, setChartType] = useState<"pie" | "bar">("pie");
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   // Guest ID for unauthenticated users
   const getGuestId = () => {
@@ -63,7 +65,7 @@ export default function PollView() {
   };
 
   // Check if user/guest has already voted
-  const checkIfVoted = async (pollId: string) => {
+  const checkIfVoted = useCallback(async (pollId: string) => {
     if (user) {
       const { data } = await supabase
         .from('votes')
@@ -93,14 +95,13 @@ export default function PollView() {
       }
     }
     return false;
-  };
+  }, [user]);
 
   // Get poll options as array
   const getPollOptions = (): PollOption[] => {
     if (!poll?.options) return [];
 
-    // Debug: Log the options structure
-    console.log('Poll options:', poll.options);
+
 
     // Handle different possible data structures from Supabase
     const options = poll.options;
@@ -182,7 +183,7 @@ export default function PollView() {
     };
 
     fetchPoll();
-  }, [id]);
+  }, [id, checkIfVoted, toast]);
 
   // Subscribe to realtime votes
   useEffect(() => {
@@ -271,27 +272,9 @@ export default function PollView() {
     }
   };
 
-  const handleShare = (platform: string) => {
-    const url = window.location.href;
-    const text = `Check out this poll: ${poll.title}`;
 
-    if (platform === "whatsapp") {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`);
-    } else if (platform === "twitter") {
-      window.open(
-        `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
-      );
-    } else {
-      navigator.clipboard.writeText(url);
-      toast({ title: "Link copied!", description: "Poll link copied to clipboard." });
-    }
-  };
 
-  const handleComment = () => {
-    if (!comment.trim()) return;
-    toast({ title: "Comment added!", description: "Your comment has been posted." });
-    setComment("");
-  };
+
 
   if (loading) {
     return (
@@ -332,6 +315,7 @@ export default function PollView() {
       <SEO
         title={`${poll.title} | NaijaPulse`}
         description={poll.question}
+        image={poll.image_url || "/pwa-512x512.png"}
         url={`/poll/${poll.id}`}
         type="article"
         keywords={`${poll.category}, Nigeria poll, ${poll.title}, vote`}
@@ -362,6 +346,17 @@ export default function PollView() {
               <Flag className="h-5 w-5 text-muted-foreground" />
             </Button>
           </div>
+
+          {/* Image */}
+          {poll.image_url && (
+            <div className="aspect-video rounded-xl overflow-hidden bg-secondary mb-6">
+              <img
+                src={poll.image_url}
+                alt={poll.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
 
           {/* Question */}
           <p className="text-base sm:text-lg text-muted-foreground mb-8">
@@ -479,6 +474,16 @@ export default function PollView() {
             </div>
           )}
 
+          {/* Comments Section */}
+          {poll && (
+            <div className="mb-6">
+              <CommentSection
+                pollId={poll.id}
+                onCommentCountChange={setCommentCount}
+              />
+            </div>
+          )}
+
           {/* Stats */}
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground border-t border-border pt-6">
             <span className="flex items-center gap-1.5">
@@ -487,7 +492,7 @@ export default function PollView() {
             </span>
             <span className="flex items-center gap-1.5">
               <MessageCircle className="h-4 w-4" />
-              0 comments
+              {commentCount.toLocaleString()} comments
             </span>
             <span className="flex items-center gap-1.5 text-primary font-medium">
               <Clock className="h-4 w-4" />
@@ -496,34 +501,17 @@ export default function PollView() {
           </div>
 
           {/* Share Buttons */}
-          <div className="flex items-center gap-3 mt-6 pt-6 border-t border-border">
-            <span className="text-sm text-muted-foreground flex items-center gap-2">
-              <Share2 className="h-4 w-4" />
-              Share:
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleShare("whatsapp")}
-              className="text-green-600 border-green-600/30 hover:bg-green-600/10"
-            >
-              WhatsApp
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleShare("twitter")}
-            >
-              X/Twitter
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleShare("copy")}
-            >
-              Copy Link
-            </Button>
-          </div>
+          {poll && (
+            <div className="mt-6 pt-6 border-t border-border">
+              <ShareButtons
+                title={poll.title}
+                question={poll.question}
+                url={`${window.location.origin}/poll/${poll.id}`}
+                imageUrl={poll.image_url}
+                variant="default"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

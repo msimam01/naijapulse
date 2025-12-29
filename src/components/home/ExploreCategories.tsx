@@ -6,7 +6,8 @@ import {
   Utensils,
   Trophy,
   Smartphone,
-  ArrowRight
+  ArrowRight,
+  type LucideIcon
 } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,7 @@ import { useState, useEffect } from "react";
 interface CategoryData {
   name: string;
   key: string;
-  icon: any;
+  icon: LucideIcon;
   count: number;
   gradient: string;
   iconBg: string;

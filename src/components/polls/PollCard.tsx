@@ -1,19 +1,23 @@
 import { Link } from "react-router-dom";
 import { Clock, MessageCircle, Users, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ShareButtons } from "@/components/ui/ShareButtons";
 
 export interface Poll {
   id: string;
   title: string;
   question: string;
   category: string;
-  options: { text: string; votes: number }[];
+  options: { text: string; votes?: number }[] | string[];
   totalVotes: number;
   commentsCount: number;
   timeRemaining: string;
   createdBy?: string;
   isTrending?: boolean;
+  image_url?: string | null;
 }
+
+type PollOption = { text: string; votes?: number };
 
 interface PollCardProps {
   poll: Poll;
@@ -30,7 +34,13 @@ const categoryColors: Record<string, string> = {
 };
 
 export function PollCard({ poll, index = 0 }: PollCardProps) {
-  const totalVotes = poll.options.reduce((acc, opt) => acc + opt.votes, 0);
+  // For new data structure, votes are calculated separately
+  // If options have votes property (old mock data), use that
+  // Otherwise, show 0 votes (real data doesn't store individual option votes in poll record)
+  const hasVoteData = poll.options.length > 0 && typeof poll.options[0] === 'object' && 'votes' in poll.options[0];
+  const totalVotes = hasVoteData
+    ? (poll.options as PollOption[]).reduce((acc, opt) => acc + (opt.votes || 0), 0)
+    : poll.totalVotes; // Use totalVotes from poll record for real data
   const topOptions = poll.options.slice(0, 3);
 
   return (
@@ -65,27 +75,48 @@ export function PollCard({ poll, index = 0 }: PollCardProps) {
           </div>
         </div>
 
+        {/* Image */}
+        {poll.image_url && (
+          <div className="aspect-video rounded-lg overflow-hidden bg-secondary">
+            <img
+              src={poll.image_url}
+              alt={poll.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        )}
+
         {/* Question */}
         <p className="text-sm text-muted-foreground line-clamp-2">{poll.question}</p>
 
         {/* Options Preview */}
         <div className="space-y-2">
           {topOptions.map((option, idx) => {
-            const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
+            // For real data, we don't have individual option votes in the poll record
+            // Show 0% for now, or we could fetch real vote data here
+            const optionVotes = hasVoteData ? (option as PollOption).votes || 0 : 0;
+            const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
+            const showPercentage = hasVoteData && percentage > 0;
+
             return (
               <div key={idx} className="relative">
                 <div className="relative h-10 bg-secondary rounded-lg overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 left-0 bg-primary/20 rounded-lg transition-all duration-500"
-                    style={{ width: `${percentage}%` }}
-                  />
+                  {showPercentage && (
+                    <div
+                      className="absolute inset-y-0 left-0 bg-primary/20 rounded-lg transition-all duration-500"
+                      style={{ width: `${percentage}%` }}
+                    />
+                  )}
                   <div className="absolute inset-0 flex items-center justify-between px-3">
                     <span className="text-sm font-medium text-foreground truncate pr-2">
-                      {option.text}
+                      {typeof option === 'string' ? option : option.text}
                     </span>
-                    <span className="text-xs font-semibold text-primary shrink-0">
-                      {percentage.toFixed(0)}%
-                    </span>
+                    {showPercentage && (
+                      <span className="text-xs font-semibold text-primary shrink-0">
+                        {percentage.toFixed(0)}%
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -99,21 +130,37 @@ export function PollCard({ poll, index = 0 }: PollCardProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" />
-              {poll.totalVotes.toLocaleString()} votes
-            </span>
-            <span className="flex items-center gap-1">
-              <MessageCircle className="h-3.5 w-3.5" />
-              {poll.commentsCount}
+        <div className="pt-2 border-t border-border space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                {poll.totalVotes.toLocaleString()} votes
+              </span>
+              <span className="flex items-center gap-1">
+                <MessageCircle className="h-3.5 w-3.5" />
+                {poll.commentsCount}
+              </span>
+            </div>
+            <span className="flex items-center gap-1 text-xs font-medium text-primary">
+              <Clock className="h-3.5 w-3.5" />
+              {poll.timeRemaining}
             </span>
           </div>
-          <span className="flex items-center gap-1 text-xs font-medium text-primary">
-            <Clock className="h-3.5 w-3.5" />
-            {poll.timeRemaining}
-          </span>
+
+          {/* Share Buttons */}
+          <div
+            onClick={(e) => e.preventDefault()} // Prevent navigation when clicking share buttons
+            className="pt-2"
+          >
+            <ShareButtons
+              title={poll.title}
+              question={poll.question}
+              url={`${window.location.origin}/poll/${poll.id}`}
+              imageUrl={poll.image_url}
+              variant="compact"
+            />
+          </div>
         </div>
       </article>
     </Link>

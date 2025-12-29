@@ -14,6 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          id: number
+          poll_id: string
+          user_id: string | null
+          guest_id: string | null
+          parent_id: number | null
+          content: string
+          creator_name: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          poll_id: string
+          user_id?: string | null
+          guest_id?: string | null
+          parent_id?: number | null
+          content: string
+          creator_name: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          poll_id?: string
+          user_id?: string | null
+          guest_id?: string | null
+          parent_id?: number | null
+          content?: string
+          creator_name?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       polls: {
         Row: {
           id: string
@@ -25,6 +80,7 @@ export type Database = {
           duration_end: string | null
           creator_id: string
           creator_name: string
+          image_url: string | null
           created_at: string
           vote_count: number
         }
@@ -38,6 +94,7 @@ export type Database = {
           duration_end?: string | null
           creator_id: string
           creator_name: string
+          image_url?: string | null
           created_at?: string
           vote_count?: number
         }
@@ -51,6 +108,7 @@ export type Database = {
           duration_end?: string | null
           creator_id?: string
           creator_name?: string
+          image_url?: string | null
           created_at?: string
           vote_count?: number
         }
@@ -150,7 +208,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof DatabaseWithoutInternals, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -228,8 +286,8 @@ export type TablesUpdate<
         Update: infer U
       }
       ? U
-      : never
     : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends

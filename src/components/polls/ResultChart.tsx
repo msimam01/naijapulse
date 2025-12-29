@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, TooltipProps } from "recharts";
 
 interface ChartOption {
   text: string;
@@ -8,6 +8,17 @@ interface ChartOption {
 interface ResultChartProps {
   options: ChartOption[];
   type?: "pie" | "bar";
+}
+
+interface CustomTooltipProps extends TooltipProps<number, string> {
+  active?: boolean;
+  payload?: Array<{
+    payload: {
+      name: string;
+      value: number;
+      percentage: string;
+    };
+  }>;
 }
 
 const COLORS = [
@@ -29,7 +40,7 @@ export function ResultChart({ options, type = "pie" }: ResultChartProps) {
     fill: COLORS[index % COLORS.length],
   }));
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (

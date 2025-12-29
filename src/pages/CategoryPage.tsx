@@ -53,15 +53,16 @@ export default function CategoryPage() {
 
   // Convert Supabase poll to Poll interface
   const mapPoll = (poll: SupabasePoll): Poll => {
-    const options = (poll.options as string[]).map(text => ({ text, votes: 0 }));
+    // For real Supabase data, options are stored as JSON array of strings
+    const options = Array.isArray(poll.options) ? poll.options as string[] : [];
     const now = new Date();
     const end = poll.duration_end ? new Date(poll.duration_end) : null;
-    const timeRemaining = end ? 
-      (end > now ? `${Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60))}h` : "Ended") : 
+    const timeRemaining = end ?
+      (end > now ? `${Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60))}h` : "Ended") :
       "Ongoing";
 
     // Simple trending logic: high vote count or recent
-    const isTrending = poll.vote_count > 10 || 
+    const isTrending = poll.vote_count > 10 ||
       (new Date(poll.created_at).getTime() > now.getTime() - 24 * 60 * 60 * 1000);
 
     return {
@@ -83,10 +84,26 @@ export default function CategoryPage() {
     if (!normalizedCategory || !info) return;
 
     const fetchPolls = async () => {
+      console.log('Fetching polls for category:', normalizedCategory);
+
+      // First, let's see what categories exist in the database
+      const { data: allPolls, error: allError } = await supabase
+        .from('polls')
+        .select('category')
+        .limit(100);
+
+      if (allError) {
+        console.error('Error fetching all polls:', allError);
+      } else {
+        const categories = [...new Set(allPolls?.map(p => p.category) || [])];
+        console.log('Available categories in DB:', categories);
+      }
+
+      // Use ilike for case-insensitive matching
       const { data, error } = await supabase
         .from('polls')
         .select('*')
-        .eq('category', normalizedCategory)
+        .ilike('category', normalizedCategory)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -96,8 +113,15 @@ export default function CategoryPage() {
         return;
       }
 
+      console.log('Raw polls data for category:', data);
+
       if (data) {
-        const mappedPolls = data.map(mapPoll);
+        // Double-check category match in case ilike is too broad
+        const filteredData = data.filter(poll =>
+          poll.category.toLowerCase() === normalizedCategory
+        );
+        console.log('Filtered polls for category:', filteredData.length);
+        const mappedPolls = filteredData.map(mapPoll);
         setPolls(mappedPolls);
       }
       setIsLoading(false);
