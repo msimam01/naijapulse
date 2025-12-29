@@ -38,58 +38,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    let mounted = true;
+
+    // Get initial session first
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Error getting session:', error);
+      }
+
+      if (mounted) {
+        console.log('Initial session loaded:', !!session);
         setSession(session);
         setUser(session?.user ?? null);
+      }
+    });
 
-        // Auto-create profile on authentication events
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-          const displayName = generateDisplayName(session.user);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, !!session);
 
-          try {
-            // Check if profile already exists
-            const { data: existingProfile } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('id', session.user.id)
-              .single();
+        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
 
-            if (!existingProfile) {
-              // Create new profile
-              const { error } = await supabase.from('profiles').insert({
-                id: session.user.id,
-                display_name: displayName,
-              });
+          // Auto-create profile on authentication events
+          if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+            const displayName = generateDisplayName(session.user);
 
-              
-            } else {
-              // Update existing profile (in case display_name changed)
-              const { error } = await supabase.from('profiles').upsert({
-                id: session.user.id,
-                display_name: displayName,
-              });
+            try {
+              // Check if profile already exists
+              const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', session.user.id)
+                .single();
 
-              
+              if (!existingProfile) {
+                // Create new profile
+                const { error } = await supabase.from('profiles').insert({
+                  id: session.user.id,
+                  display_name: displayName,
+                });
+                if (error) console.error('Profile creation error:', error);
+              } else {
+                // Update existing profile (in case display_name changed)
+                const { error } = await supabase.from('profiles').upsert({
+                  id: session.user.id,
+                  display_name: displayName,
+                });
+                if (error) console.error('Profile update error:', error);
+              }
+            } catch (error) {
+              console.error('Error in profile creation/update:', error);
             }
-          } catch (error) {
-            // console.error('Error in profile creation/update:', error);
           }
-        }
 
-        setIsLoading(false);
+          // Set loading to false only after auth state change
+          setIsLoading(false);
+        }
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
+    // Force session confirmation for magic links
+    const handleAuthCallback = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Auth callback error:', error);
+      } else {
+        console.log('Session confirmed after callback:', !!data.session);
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    // Check if we're returning from auth redirect
+    if (window.location.hash.includes('access_token') || window.location.search.includes('code')) {
+      handleAuthCallback();
+    }
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Sign in with phone OTP (default/recommended for Nigeria)

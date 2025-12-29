@@ -2,7 +2,9 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Filter } from "lucide-react";
 import { PollCard } from "@/components/polls/PollCard";
 import { PollCardSkeleton } from "@/components/polls/PollCardSkeleton";
-import { mockPolls } from "@/data/mockPolls";
+import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
+import { Poll } from "@/components/polls/PollCard";
 import { useState, useEffect } from "react";
 
 const categoryInfo: Record<string, { title: string; description: string; icon: string }> = {
@@ -38,29 +40,78 @@ const categoryInfo: Record<string, { title: string; description: string; icon: s
   },
 };
 
+type SupabasePoll = Tables<'polls'>;
+
 export default function CategoryPage() {
   const { category } = useParams();
+  const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"recent" | "popular">("recent");
 
   const normalizedCategory = category?.toLowerCase() || "";
   const info = categoryInfo[normalizedCategory];
 
-  const filteredPolls = mockPolls.filter(
-    (poll) => poll.category.toLowerCase() === normalizedCategory
-  );
+  // Convert Supabase poll to Poll interface
+  const mapPoll = (poll: SupabasePoll): Poll => {
+    const options = (poll.options as string[]).map(text => ({ text, votes: 0 }));
+    const now = new Date();
+    const end = poll.duration_end ? new Date(poll.duration_end) : null;
+    const timeRemaining = end ? 
+      (end > now ? `${Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60))}h` : "Ended") : 
+      "Ongoing";
 
-  const sortedPolls = [...filteredPolls].sort((a, b) => {
+    // Simple trending logic: high vote count or recent
+    const isTrending = poll.vote_count > 10 || 
+      (new Date(poll.created_at).getTime() > now.getTime() - 24 * 60 * 60 * 1000);
+
+    return {
+      id: poll.id,
+      title: poll.title,
+      question: poll.question,
+      category: poll.category,
+      options,
+      totalVotes: poll.vote_count || 0,
+      commentsCount: 0,
+      timeRemaining,
+      createdBy: poll.creator_name,
+      isTrending,
+    };
+  };
+
+  // Fetch polls for this category
+  useEffect(() => {
+    if (!normalizedCategory || !info) return;
+
+    const fetchPolls = async () => {
+      const { data, error } = await supabase
+        .from('polls')
+        .select('*')
+        .eq('category', normalizedCategory)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching polls:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data) {
+        const mappedPolls = data.map(mapPoll);
+        setPolls(mappedPolls);
+      }
+      setIsLoading(false);
+    };
+
+    fetchPolls();
+  }, [normalizedCategory, info]);
+
+  const sortedPolls = [...polls].sort((a, b) => {
     if (sortBy === "popular") {
       return b.totalVotes - a.totalVotes;
     }
     return 0;
   });
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, [category]);
 
   if (!info) {
     return (
@@ -101,7 +152,7 @@ export default function CategoryPage() {
         </div>
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {filteredPolls.length} polls in this category
+            {polls.length} polls in this category
           </p>
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />

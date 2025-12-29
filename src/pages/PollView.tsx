@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   Clock,
@@ -18,26 +18,205 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
-import { mockPolls, mockComments } from "@/data/mockPolls";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
 import { ResultChart } from "@/components/polls/ResultChart";
 import { SEO } from "@/components/SEO";
+
+type Poll = Tables<'polls'>;
+type Vote = Tables<'votes'>;
+
+interface PollOption {
+  text: string;
+}
+
+interface ChartOption extends PollOption {
+  votes: number;
+}
 
 export default function PollView() {
   const { id } = useParams();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { user } = useAuth();
 
-  const poll = mockPolls.find((p) => p.id === id) || mockPolls[0];
-  const totalVotes = poll.options.reduce((acc, opt) => acc + opt.votes, 0);
-
+  const [poll, setPoll] = useState<Poll | null>(null);
+  const [votes, setVotes] = useState<Vote[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
+  const [userVote, setUserVote] = useState<Vote | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [chartType, setChartType] = useState<"pie" | "bar">("pie");
+  const [loading, setLoading] = useState(true);
+  const [voting, setVoting] = useState(false);
 
-  const handleVote = () => {
-    if (selectedOption === null) {
+  // Guest ID for unauthenticated users
+  const getGuestId = () => {
+    let guestId = localStorage.getItem('guestId');
+    if (!guestId) {
+      guestId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('guestId', guestId);
+    }
+    return guestId;
+  };
+
+  // Check if user/guest has already voted
+  const checkIfVoted = async (pollId: string) => {
+    if (user) {
+      const { data } = await supabase
+        .from('votes')
+        .select()
+        .eq('poll_id', pollId)
+        .eq('user_id', user.id)
+        .single();
+      if (data) {
+        setHasVoted(true);
+        setUserVote(data);
+        setShowResults(true);
+        return true;
+      }
+    } else {
+      const guestId = getGuestId();
+      const { data } = await supabase
+        .from('votes')
+        .select()
+        .eq('poll_id', pollId)
+        .eq('guest_id', guestId)
+        .single();
+      if (data) {
+        setHasVoted(true);
+        setUserVote(data);
+        setShowResults(true);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Get poll options as array
+  const getPollOptions = (): PollOption[] => {
+    if (!poll?.options) return [];
+
+    // Debug: Log the options structure
+    console.log('Poll options:', poll.options);
+
+    // Handle different possible data structures from Supabase
+    const options = poll.options;
+    if (Array.isArray(options)) {
+      return options.map(option => {
+        if (typeof option === 'string') {
+          return { text: option };
+        } else if (typeof option === 'object' && option && 'text' in option) {
+          return { text: String(option.text) };
+        }
+        return { text: String(option) };
+      });
+    }
+
+    return [];
+  };
+
+  // Aggregate votes by option
+  const getVoteCounts = () => {
+    const options = getPollOptions();
+    const counts = options.map(() => 0);
+    votes.forEach(vote => {
+      if (vote.option_index >= 0 && vote.option_index < counts.length) {
+        counts[vote.option_index]++;
+      }
+    });
+    return counts;
+  };
+
+  // Get options with vote counts for chart
+  const getChartOptions = (): ChartOption[] => {
+    const options = getPollOptions();
+    const counts = getVoteCounts();
+    return options.map((opt, index) => ({
+      ...opt,
+      votes: counts[index],
+    }));
+  };
+
+  // Calculate time remaining
+  const getTimeRemaining = () => {
+    if (!poll?.duration_end) return "Ongoing";
+    const end = new Date(poll.duration_end);
+    const now = new Date();
+    const diff = end.getTime() - now.getTime();
+    if (diff <= 0) return "Ended";
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
+  };
+
+  const totalVotes = votes.length;
+
+  // Fetch poll and votes
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchPoll = async () => {
+      const { data: pollData, error } = await supabase
+        .from('polls')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !pollData) {
+        toast({
+          title: "Poll not found",
+          description: "The poll you're looking for doesn't exist.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      setPoll(pollData);
+      await checkIfVoted(id);
+      setLoading(false);
+    };
+
+    fetchPoll();
+  }, [id]);
+
+  // Subscribe to realtime votes
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`poll:${id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'votes',
+        filter: `poll_id=eq.${id}`,
+      }, (payload) => {
+        setVotes(prev => [...prev, payload.new as Vote]);
+      })
+      .subscribe();
+
+    // Initial fetch of votes
+    const fetchVotes = async () => {
+      const { data } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('poll_id', id);
+      if (data) setVotes(data);
+    };
+    fetchVotes();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
+  const handleVote = async () => {
+    if (selectedOption === null || !poll) {
       toast({
         title: "Please select an option",
         description: "You need to choose an option before voting.",
@@ -46,12 +225,50 @@ export default function PollView() {
       return;
     }
 
-    setHasVoted(true);
-    setShowResults(true);
-    toast({
-      title: "Vote submitted! 🗳️",
-      description: "Thank you for sharing your opinion.",
-    });
+    setVoting(true);
+    try {
+      const voteData = {
+        poll_id: poll.id,
+        option_index: selectedOption,
+        user_id: user?.id || null,
+        guest_id: user ? null : getGuestId(),
+      };
+
+      const { error } = await supabase
+        .from('votes')
+        .insert(voteData);
+
+      if (error) {
+        toast({
+          title: "Voting failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update poll vote_count
+      await supabase
+        .from('polls')
+        .update({ vote_count: (poll.vote_count || 0) + 1 })
+        .eq('id', poll.id);
+
+      setHasVoted(true);
+      setUserVote(voteData as Vote);
+      setShowResults(true);
+      toast({
+        title: "Vote submitted! 🗳️",
+        description: "Thank you for sharing your opinion.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setVoting(false);
+    }
   };
 
   const handleShare = (platform: string) => {
@@ -75,6 +292,40 @@ export default function PollView() {
     toast({ title: "Comment added!", description: "Your comment has been posted." });
     setComment("");
   };
+
+  if (loading) {
+    return (
+      <div className="container py-6 sm:py-10">
+        <div className="max-w-3xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-muted rounded w-3/4 mb-4"></div>
+            <div className="h-4 bg-muted rounded w-1/2 mb-8"></div>
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-16 bg-muted rounded-xl"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!poll) {
+    return (
+      <div className="container py-6 sm:py-10">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-4">Poll not found</h1>
+          <Link to="/" className="text-primary hover:underline">
+            Go back to home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const pollOptions = getPollOptions();
+  const voteCounts = getVoteCounts();
 
   return (
     <div className="container py-6 sm:py-10">
@@ -119,18 +370,22 @@ export default function PollView() {
 
           {/* Voting Options */}
           <div className="space-y-3 mb-8">
-            {poll.options.map((option, index) => {
-              const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
+            {pollOptions.map((option, index) => {
+              const votes = voteCounts[index];
+              const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0;
               const isSelected = selectedOption === index;
+              const isUserChoice = userVote?.option_index === index;
 
               return (
                 <button
                   key={index}
                   onClick={() => !hasVoted && setSelectedOption(index)}
-                  disabled={hasVoted}
+                  disabled={hasVoted || voting}
                   className={`w-full relative overflow-hidden rounded-xl border-2 transition-all duration-300 ${
                     isSelected
                       ? "border-primary bg-primary/5"
+                      : isUserChoice
+                      ? "border-green-500 bg-green-500/5"
                       : "border-border hover:border-primary/50"
                   } ${hasVoted ? "cursor-default" : "cursor-pointer"}`}
                 >
@@ -146,16 +401,23 @@ export default function PollView() {
                         className={`h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${
                           isSelected
                             ? "border-primary bg-primary"
+                            : isUserChoice
+                            ? "border-green-500 bg-green-500"
                             : "border-border"
                         }`}
                       >
-                        {isSelected && (
+                        {(isSelected || isUserChoice) && (
                           <div className="h-2 w-2 rounded-full bg-primary-foreground" />
                         )}
                       </div>
                       <span className="text-sm sm:text-base font-medium text-foreground">
                         {option.text}
                       </span>
+                      {isUserChoice && (
+                        <Badge variant="outline" className="text-green-600 border-green-600">
+                          Your choice
+                        </Badge>
+                      )}
                     </div>
                     {showResults && (
                       <div className="flex items-center gap-2 text-sm">
@@ -163,7 +425,7 @@ export default function PollView() {
                           {percentage.toFixed(1)}%
                         </span>
                         <span className="text-muted-foreground">
-                          ({option.votes.toLocaleString()})
+                          ({votes.toLocaleString()})
                         </span>
                       </div>
                     )}
@@ -177,10 +439,11 @@ export default function PollView() {
           {!hasVoted && (
             <Button
               onClick={handleVote}
+              disabled={voting}
               size="lg"
               className="w-full btn-touch text-base font-semibold mb-6"
             >
-              Submit My Vote
+              {voting ? "Submitting..." : "Submit My Vote"}
             </Button>
           )}
 
@@ -212,7 +475,7 @@ export default function PollView() {
                   </button>
                 </div>
               </div>
-              <ResultChart options={poll.options} type={chartType} />
+              <ResultChart options={getChartOptions()} type={chartType} />
             </div>
           )}
 
@@ -224,11 +487,11 @@ export default function PollView() {
             </span>
             <span className="flex items-center gap-1.5">
               <MessageCircle className="h-4 w-4" />
-              {poll.commentsCount} comments
+              0 comments
             </span>
             <span className="flex items-center gap-1.5 text-primary font-medium">
               <Clock className="h-4 w-4" />
-              {poll.timeRemaining}
+              {getTimeRemaining()}
             </span>
           </div>
 
@@ -260,87 +523,6 @@ export default function PollView() {
             >
               Copy Link
             </Button>
-          </div>
-        </div>
-
-        {/* Comments Section */}
-        <div className="mt-8 animate-fade-up delay-200">
-          <h2 className="font-poppins font-bold text-xl text-foreground mb-6">
-            Comments ({mockComments.length})
-          </h2>
-
-          {/* Add Comment */}
-          <div className="bg-card rounded-xl border border-border p-4 mb-6">
-            <Textarea
-              placeholder="Share your thoughts..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="min-h-[80px] resize-none border-0 focus-visible:ring-0 p-0 mb-3"
-            />
-            <div className="flex justify-end">
-              <Button onClick={handleComment} className="gap-2">
-                <Send className="h-4 w-4" />
-                Post Comment
-              </Button>
-            </div>
-          </div>
-
-          {/* Comments List */}
-          <div className="space-y-4">
-            {mockComments.map((c) => (
-              <div key={c.id} className="bg-card rounded-xl border border-border p-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-semibold text-primary">
-                      {c.author[0]}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-foreground">{c.author}</span>
-                      <span className="text-xs text-muted-foreground">{c.time}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-3">{c.text}</p>
-                    <div className="flex items-center gap-4">
-                      <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                        <Heart className="h-3.5 w-3.5" />
-                        {c.likes}
-                      </button>
-                      <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-                        <Reply className="h-3.5 w-3.5" />
-                        Reply
-                      </button>
-                    </div>
-
-                    {/* Replies */}
-                    {c.replies.length > 0 && (
-                      <div className="mt-4 pl-4 border-l-2 border-border space-y-3">
-                        {c.replies.map((reply) => (
-                          <div key={reply.id} className="flex items-start gap-2">
-                            <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                              <span className="text-xs font-semibold text-muted-foreground">
-                                {reply.author[0]}
-                              </span>
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-sm font-medium text-foreground">
-                                  {reply.author}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {reply.time}
-                                </span>
-                              </div>
-                              <p className="text-sm text-muted-foreground">{reply.text}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>

@@ -4,23 +4,102 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PollCard } from "@/components/polls/PollCard";
 import { PollCardSkeleton } from "@/components/polls/PollCardSkeleton";
-import { mockPolls } from "@/data/mockPolls";
+import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
+import { Poll } from "@/components/polls/PollCard";
+
+type SupabasePoll = Tables<'polls'>;
 
 const categories = ["All", "Politics", "Entertainment", "Economy", "Lifestyle", "Sports", "Technology"];
 
 export default function AllPolls() {
+  const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState<"recent" | "popular" | "ending">("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
+  // Convert Supabase poll to Poll interface
+  const mapPoll = (poll: SupabasePoll): Poll => {
+    const options = (poll.options as string[]).map(text => ({ text, votes: 0 }));
+    const now = new Date();
+    const end = poll.duration_end ? new Date(poll.duration_end) : null;
+    const timeRemaining = end ? 
+      (end > now ? `${Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60))}h` : "Ended") : 
+      "Ongoing";
+
+    // Simple trending logic: high vote count or recent
+    const isTrending = poll.vote_count > 10 || 
+      (new Date(poll.created_at).getTime() > now.getTime() - 24 * 60 * 60 * 1000);
+
+    return {
+      id: poll.id,
+      title: poll.title,
+      question: poll.question,
+      category: poll.category,
+      options,
+      totalVotes: poll.vote_count || 0,
+      commentsCount: 0,
+      timeRemaining,
+      createdBy: poll.creator_name,
+      isTrending,
+    };
+  };
+
+  // Fetch polls
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
+    const fetchPolls = async () => {
+      const { data, error } = await supabase
+        .from('polls')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50); // More for all polls page
+
+      if (error) {
+        console.error('Error fetching polls:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data) {
+        const mappedPolls = data.map(mapPoll);
+        setPolls(mappedPolls);
+      }
+      setIsLoading(false);
+    };
+
+    fetchPolls();
   }, []);
 
-  const filteredPolls = mockPolls.filter((poll) => {
+  // Subscribe to realtime updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('all-polls')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'polls',
+      }, (payload) => {
+        const newPoll = mapPoll(payload.new as SupabasePoll);
+        setPolls(prev => [newPoll, ...prev]);
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'polls',
+      }, (payload) => {
+        const updatedPoll = mapPoll(payload.new as SupabasePoll);
+        setPolls(prev => prev.map(p => p.id === updatedPoll.id ? updatedPoll : p));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const filteredPolls = polls.filter((poll) => {
     const matchesSearch = poll.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       poll.question.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === "All" || poll.category === selectedCategory;
@@ -45,7 +124,7 @@ export default function AllPolls() {
           All Polls
         </h1>
         <p className="text-muted-foreground">
-          Browse and participate in {mockPolls.length}+ active polls
+          Browse and participate in {polls.length}+ active polls
         </p>
       </div>
 
@@ -116,7 +195,7 @@ export default function AllPolls() {
 
       {/* Results Count */}
       <p className="text-sm text-muted-foreground mb-4">
-        Showing {sortedPolls.length} of {mockPolls.length} polls
+        Showing {sortedPolls.length} of {polls.length} polls
       </p>
 
       {/* Polls Grid */}

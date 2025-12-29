@@ -90,6 +90,48 @@ export type Database = {
           }
         ]
       }
+      votes: {
+        Row: {
+          id: number
+          poll_id: string
+          user_id: string | null
+          guest_id: string | null
+          option_index: number
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          poll_id: string
+          user_id?: string | null
+          guest_id?: string | null
+          option_index: number
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          poll_id?: string
+          user_id?: string | null
+          guest_id?: string | null
+          option_index?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

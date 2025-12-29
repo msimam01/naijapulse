@@ -1,24 +1,36 @@
 import { Link } from "react-router-dom";
-import { 
-  Landmark, 
-  Music, 
-  TrendingUp, 
-  Utensils, 
-  Trophy, 
+import {
+  Landmark,
+  Music,
+  TrendingUp,
+  Utensils,
+  Trophy,
   Smartphone,
   ArrowRight
 } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+
+interface CategoryData {
+  name: string;
+  key: string;
+  icon: any;
+  count: number;
+  gradient: string;
+  iconBg: string;
+  iconColor: string;
+}
 
 export function ExploreCategories() {
   const { t } = useLanguage();
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
 
-  const categories = [
+  const baseCategories: Omit<CategoryData, 'count'>[] = [
     {
       name: t("category.politics"),
       key: "politics",
       icon: Landmark,
-      count: "12.5K",
       gradient: "from-red-500/20 to-red-600/10",
       iconBg: "bg-red-500/20",
       iconColor: "text-red-600 dark:text-red-400",
@@ -27,7 +39,6 @@ export function ExploreCategories() {
       name: t("category.entertainment"),
       key: "entertainment",
       icon: Music,
-      count: "18.2K",
       gradient: "from-purple-500/20 to-purple-600/10",
       iconBg: "bg-purple-500/20",
       iconColor: "text-purple-600 dark:text-purple-400",
@@ -36,7 +47,6 @@ export function ExploreCategories() {
       name: t("category.economy"),
       key: "economy",
       icon: TrendingUp,
-      count: "8.9K",
       gradient: "from-primary/20 to-primary/10",
       iconBg: "bg-primary/20",
       iconColor: "text-primary",
@@ -45,7 +55,6 @@ export function ExploreCategories() {
       name: t("category.lifestyle"),
       key: "lifestyle",
       icon: Utensils,
-      count: "22.1K",
       gradient: "from-orange-500/20 to-orange-600/10",
       iconBg: "bg-orange-500/20",
       iconColor: "text-orange-600 dark:text-orange-400",
@@ -54,7 +63,6 @@ export function ExploreCategories() {
       name: t("category.sports"),
       key: "sports",
       icon: Trophy,
-      count: "15.7K",
       gradient: "from-naija-gold/30 to-naija-gold/10",
       iconBg: "bg-naija-gold/30",
       iconColor: "text-foreground",
@@ -63,12 +71,48 @@ export function ExploreCategories() {
       name: t("category.technology"),
       key: "technology",
       icon: Smartphone,
-      count: "6.3K",
       gradient: "from-blue-500/20 to-blue-600/10",
       iconBg: "bg-blue-500/20",
       iconColor: "text-blue-600 dark:text-blue-400",
     },
   ];
+
+  // Fetch category counts
+  useEffect(() => {
+    const fetchCategoryCounts = async () => {
+      const { data, error } = await supabase
+        .from('polls')
+        .select('category')
+        .not('category', 'is', null);
+
+      if (error) {
+        console.error('Error fetching category counts:', error);
+        return;
+      }
+
+      if (data) {
+        const counts: Record<string, number> = {};
+        data.forEach(poll => {
+          counts[poll.category] = (counts[poll.category] || 0) + 1;
+        });
+        setCategoryCounts(counts);
+      }
+    };
+
+    fetchCategoryCounts();
+  }, []);
+
+  const categories = baseCategories.map(cat => ({
+    ...cat,
+    count: categoryCounts[cat.key] || 0,
+  }));
+
+  const formatCount = (count: number) => {
+    if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
+  };
 
   return (
     <section id="categories" className="container py-12 sm:py-16">
