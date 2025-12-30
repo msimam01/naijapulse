@@ -32,13 +32,23 @@ export function Header({ onLoginClick }: HeaderProps) {
   useEffect(() => {
     const checkAdmin = async () => {
       if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single();
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
 
-        setIsAdmin(profile?.is_admin || false);
+          if (error) {
+            console.log('Header: Profile not found or RLS error');
+            setIsAdmin(false);
+          } else {
+            setIsAdmin(profile?.is_admin || false);
+          }
+        } catch (err) {
+          console.error('Header: Error checking admin status:', err);
+          setIsAdmin(false);
+        }
       } else {
         setIsAdmin(false);
       }

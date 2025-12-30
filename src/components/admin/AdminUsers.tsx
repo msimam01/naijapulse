@@ -224,18 +224,23 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
       key: 'email',
       header: 'Email/Phone',
       sortable: true,
-      render: (value: string, row: UserWithAuth) => (
+      render: (_value: string | undefined, row: UserWithAuth) => (
         <div className="space-y-1">
-          {value && (
+          {row.email && (
             <div className="flex items-center gap-1 text-sm">
               <Mail className="h-3 w-3" />
-              {value}
+              {row.email}
             </div>
           )}
           {row.phone && (
             <div className="flex items-center gap-1 text-sm">
               <Phone className="h-3 w-3" />
               {row.phone}
+            </div>
+          )}
+          {!row.email && !row.phone && (
+            <div className="text-sm text-muted-foreground">
+              Auth data not available
             </div>
           )}
         </div>

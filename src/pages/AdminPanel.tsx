@@ -33,9 +33,12 @@ export default function AdminPanel() {
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) {
+        console.log('AdminPanel: No user found');
         setAdminCheckLoading(false);
         return;
       }
+
+      console.log('AdminPanel: Checking admin status for user:', user.id);
 
       try {
         const { data: profile, error } = await supabase
@@ -45,7 +48,8 @@ export default function AdminPanel() {
           .single();
 
         if (error) {
-          console.error('Error checking admin status:', error);
+          console.error('AdminPanel: Error checking admin status:', error);
+          console.log('AdminPanel: User is not admin or profile not found');
           setIsAdmin(false);
           setAdminCheckLoading(false);
           window.location.href = '/';
@@ -53,17 +57,21 @@ export default function AdminPanel() {
         }
 
         const admin = profile?.is_admin || false;
-        setIsAdmin(admin);
+        console.log('AdminPanel: User admin status:', admin);
 
         if (!admin) {
+          console.log('AdminPanel: User is not admin, redirecting');
+          setIsAdmin(false);
           setAdminCheckLoading(false);
           window.location.href = '/';
           return;
         }
 
+        console.log('AdminPanel: User is admin, showing panel');
+        setIsAdmin(true);
         setAdminCheckLoading(false);
       } catch (error) {
-        console.error('Error in admin check:', error);
+        console.error('AdminPanel: Unexpected error:', error);
         setIsAdmin(false);
         setAdminCheckLoading(false);
         window.location.href = '/';

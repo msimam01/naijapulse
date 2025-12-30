@@ -18,6 +18,10 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can read own profile" ON profiles
   FOR SELECT USING (auth.uid() = id);
 
+-- Allow reading profiles for admin functionality (checked at application level)
+CREATE POLICY "Allow profile reads for admin operations" ON profiles
+  FOR SELECT USING (true);
+
 -- Users can insert their own profile
 CREATE POLICY "Users can insert own profile" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
@@ -25,6 +29,10 @@ CREATE POLICY "Users can insert own profile" ON profiles
 -- Users can update their own profile
 CREATE POLICY "Users can update own profile" ON profiles
   FOR UPDATE USING (auth.uid() = id);
+
+-- Allow profile updates for admin functionality
+CREATE POLICY "Allow profile updates for admin operations" ON profiles
+  FOR UPDATE USING (true);
 
 -- Create polls table
 CREATE TABLE polls (

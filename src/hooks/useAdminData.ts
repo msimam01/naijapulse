@@ -41,27 +41,22 @@ export const useAdminData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all users with auth data
+  // Fetch all users (profiles only - auth data requires special permissions)
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          display_name,
-          is_admin,
-          created_at,
-          auth.users!inner(email, phone, created_at)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const usersWithAuth: UserWithAuth[] = data.map((profile: any) => ({
+      // Convert profiles to UserWithAuth format (without auth data for now)
+      const usersWithAuth: UserWithAuth[] = data.map((profile) => ({
         ...profile,
-        email: profile.auth.users?.email,
-        phone: profile.auth.users?.phone,
-        auth_created_at: profile.auth.users?.created_at,
+        email: undefined, // Auth data requires admin API access
+        phone: undefined,
+        auth_created_at: undefined,
       }));
 
       setUsers(usersWithAuth);
