@@ -34,7 +34,6 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {polls.map((poll, index) => {
-            console.log('Trending poll:', poll.id, 'totalVotes:', poll.totalVotes, 'voteData:', poll.voteData);
             const topOptions = poll.options.slice(0, 3);
             const hasVoteData = poll.options.length > 0 && typeof poll.options[0] === 'object' && 'votes' in poll.options[0];
 
