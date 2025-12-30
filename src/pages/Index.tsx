@@ -29,9 +29,9 @@ export default function Index() {
       (end > now ? `${Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60))}h` : "Ended") :
       "Ongoing";
 
-    // Simple trending logic: high vote count or recent
-    const isTrending = poll.vote_count > 10 ||
-      (new Date(poll.created_at).getTime() > now.getTime() - 24 * 60 * 60 * 1000);
+    // Trending logic: recent polls with votes
+    const isTrending = poll.vote_count > 0 &&
+      (new Date(poll.created_at).getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     return {
       id: poll.id,
@@ -40,7 +40,7 @@ export default function Index() {
       category: poll.category,
       options,
       totalVotes: poll.vote_count || 0,
-      commentsCount: 0, // TODO: implement comments
+      commentsCount: poll.comment_count || 0,
       timeRemaining,
       createdBy: poll.creator_name,
       isTrending,
@@ -55,6 +55,7 @@ export default function Index() {
       const { data, error } = await supabase
         .from('polls')
         .select('*')
+        .order('vote_count', { ascending: false })
         .order('is_sponsored', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(20);
@@ -102,9 +103,13 @@ export default function Index() {
     };
   }, []);
 
-  // Get featured polls (first 3 polls, prioritize trending)
+  // Get featured polls (prioritize sponsored, then high-engagement)
   const featuredPolls = [...polls]
-    .sort((a, b) => (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0))
+    .sort((a, b) => {
+      if (a.is_sponsored && !b.is_sponsored) return -1;
+      if (!a.is_sponsored && b.is_sponsored) return 1;
+      return b.totalVotes - a.totalVotes;
+    })
     .slice(0, 3);
 
   // Get trending polls (different from featured, limit to 3)

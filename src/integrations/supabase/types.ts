@@ -83,6 +83,7 @@ export type Database = {
           image_url: string | null
           created_at: string
           vote_count: number
+          comment_count: number
           is_sponsored: boolean
         }
         Insert: {
@@ -98,6 +99,7 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           vote_count?: number
+          comment_count?: number
           is_sponsored?: boolean
         }
         Update: {
@@ -113,6 +115,7 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           vote_count?: number
+          comment_count?: number
           is_sponsored?: boolean
         }
         Relationships: [
@@ -130,18 +133,21 @@ export type Database = {
           id: string
           display_name: string
           language_preference: string | null
+          is_admin: boolean
           created_at: string
         }
         Insert: {
           id: string
           display_name: string
           language_preference?: string | null
+          is_admin?: boolean
           created_at?: string
         }
         Update: {
           id?: string
           display_name?: string
           language_preference?: string | null
+          is_admin?: boolean
           created_at?: string
         }
         Relationships: [
@@ -283,7 +289,7 @@ export type Tables<
         Row: infer R
       }
       ? R
-      : never
+    : never
     : never
 
 export type TablesInsert<
@@ -308,7 +314,7 @@ export type TablesInsert<
         Insert: infer I
       }
       ? I
-      : never
+    : never
     : never
 
 export type TablesUpdate<
@@ -332,9 +338,9 @@ export type TablesUpdate<
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
-      ? U
+    ? U
     : never
-  : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends

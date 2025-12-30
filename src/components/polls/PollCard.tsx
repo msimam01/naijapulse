@@ -17,6 +17,7 @@ export interface Poll {
   isTrending?: boolean;
   image_url?: string | null;
   is_sponsored?: boolean;
+  voteData?: { [optionIndex: number]: number };
 }
 
 type PollOption = { text: string; votes?: number };
@@ -100,11 +101,10 @@ export function PollCard({ poll, index = 0 }: PollCardProps) {
         {/* Options Preview */}
         <div className="space-y-2">
           {topOptions.map((option, idx) => {
-            // For real data, we don't have individual option votes in the poll record
-            // Show 0% for now, or we could fetch real vote data here
-            const optionVotes = hasVoteData ? (option as PollOption).votes || 0 : 0;
+            // Use voteData if available, otherwise fallback to mock data
+            const optionVotes = poll.voteData ? poll.voteData[idx] || 0 : (hasVoteData ? (option as PollOption).votes || 0 : 0);
             const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
-            const showPercentage = hasVoteData && percentage > 0;
+            const showPercentage = percentage > 0;
 
             return (
               <div key={idx} className="relative">

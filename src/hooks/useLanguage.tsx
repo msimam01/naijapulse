@@ -73,12 +73,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       try {
         await supabase
           .from('profiles')
-          .upsert({
-            id: user.id,
+          .update({
             language_preference: lang
-          }, {
-            onConflict: 'id'
-          });
+          })
+          .eq('id', user.id);
       } catch (error) {
         // Silently fail if database column doesn't exist yet
         console.warn('Database language preference not available yet - using localStorage only');

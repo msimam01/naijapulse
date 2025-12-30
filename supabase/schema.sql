@@ -6,6 +6,7 @@ CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT NOT NULL,
   language_preference TEXT DEFAULT 'en' CHECK (language_preference IN ('en', 'pidgin')),
+  is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -39,6 +40,7 @@ CREATE TABLE polls (
   image_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   vote_count INTEGER DEFAULT 0,
+  comment_count INTEGER DEFAULT 0,
   is_sponsored BOOLEAN DEFAULT FALSE
 );
 
@@ -62,14 +64,14 @@ CREATE POLICY "Creators can update own polls" ON polls
 CREATE POLICY "Creators can delete own polls" ON polls
   FOR DELETE USING (auth.uid() = creator_id);
 
--- Only admins can update is_sponsored (replace 'your-admin-uid-here' with actual admin user ID)
+-- Only admins can update is_sponsored
 CREATE POLICY "Admins can update sponsored status" ON polls
   FOR UPDATE USING (
-    auth.uid() = 'your-admin-uid-here' OR
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE) OR
     auth.uid() = creator_id
   )
   WITH CHECK (
-    auth.uid() = 'your-admin-uid-here' OR
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE) OR
     auth.uid() = creator_id
   );
 
@@ -128,6 +130,8 @@ CREATE INDEX idx_polls_category ON polls(category);
 CREATE INDEX idx_polls_created_at ON polls(created_at DESC);
 CREATE INDEX idx_polls_duration_end ON polls(duration_end) WHERE duration_end IS NOT NULL;
 CREATE INDEX idx_polls_is_sponsored ON polls(is_sponsored);
+CREATE INDEX idx_polls_vote_count ON polls(vote_count DESC);
+CREATE INDEX idx_polls_comment_count ON polls(comment_count DESC);
 
 -- Index for votes
 CREATE INDEX idx_votes_poll_id ON votes(poll_id);
@@ -169,11 +173,11 @@ CREATE POLICY "Creators can update own comments" ON comments
     END
   );
 
--- Only the creator or admin can delete comments (admin role to be implemented later)
+-- Only the creator or admin can delete comments
 CREATE POLICY "Creators can delete own comments" ON comments
   FOR DELETE USING (
     CASE
-      WHEN user_id IS NOT NULL THEN auth.uid() = user_id
+      WHEN user_id IS NOT NULL THEN auth.uid() = user_id OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE)
       WHEN guest_id IS NOT NULL THEN true  -- Guests can delete (handled client-side)
       ELSE false
     END
@@ -206,18 +210,60 @@ ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can insert reports" ON reports
   FOR INSERT WITH CHECK (true);
 
--- Only admin can SELECT/UPDATE/DELETE reports (replace 'your-admin-uid-here' with actual admin user ID)
+-- Only admin can SELECT/UPDATE/DELETE reports
 CREATE POLICY "Only admin can view reports" ON reports
-  FOR SELECT USING (auth.uid() = 'your-admin-uid-here');
+  FOR SELECT USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE));
 
 CREATE POLICY "Only admin can update reports" ON reports
-  FOR UPDATE USING (auth.uid() = 'your-admin-uid-here');
+  FOR UPDATE USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE));
 
 CREATE POLICY "Only admin can delete reports" ON reports
-  FOR DELETE USING (auth.uid() = 'your-admin-uid-here');
+  FOR DELETE USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE));
 
 -- Indexes for reports
 CREATE INDEX idx_reports_target_type_target_id ON reports(target_type, target_id);
 CREATE INDEX idx_reports_reporter_id ON reports(reporter_id) WHERE reporter_id IS NOT NULL;
 CREATE INDEX idx_reports_guest_id ON reports(guest_id) WHERE guest_id IS NOT NULL;
 CREATE INDEX idx_reports_created_at ON reports(created_at DESC);
+
+-- Trigger functions for auto-updating counts
+
+-- Function to update vote_count on polls
+CREATE OR REPLACE FUNCTION update_vote_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE polls SET vote_count = vote_count + 1 WHERE id = NEW.poll_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE polls SET vote_count = vote_count - 1 WHERE id = OLD.poll_id;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for vote_count
+CREATE TRIGGER trigger_update_vote_count
+AFTER INSERT OR DELETE ON votes
+FOR EACH ROW EXECUTE FUNCTION update_vote_count();
+
+-- Function to update comment_count on polls
+CREATE OR REPLACE FUNCTION update_comment_count()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE polls SET comment_count = comment_count + 1 WHERE id = NEW.poll_id;
+    RETURN NEW;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE polls SET comment_count = comment_count - 1 WHERE id = OLD.poll_id;
+    RETURN OLD;
+  END IF;
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for comment_count
+CREATE TRIGGER trigger_update_comment_count
+AFTER INSERT OR DELETE ON comments
+FOR EACH ROW EXECUTE FUNCTION update_comment_count();

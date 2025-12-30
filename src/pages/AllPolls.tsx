@@ -21,7 +21,7 @@ export default function AllPolls() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Convert Supabase poll to Poll interface
-  const mapPoll = (poll: SupabasePoll): Poll => {
+  const mapPoll = (poll: SupabasePoll, voteDataMap?: { [pollId: string]: { [optionIndex: number]: number } }): Poll => {
     // For real Supabase data, options are stored as JSON array of strings
     const options = Array.isArray(poll.options) ? poll.options as string[] : [];
     const now = new Date();
@@ -41,33 +41,55 @@ export default function AllPolls() {
       category: poll.category,
       options,
       totalVotes: poll.vote_count || 0,
-      commentsCount: 0,
+      commentsCount: poll.comment_count || 0,
       timeRemaining,
       createdBy: poll.creator_name,
       isTrending,
       is_sponsored: poll.is_sponsored || false,
       image_url: poll.image_url,
+      voteData: voteDataMap[poll.id],
     };
   };
 
   // Fetch polls
   useEffect(() => {
     const fetchPolls = async () => {
-      const { data, error } = await supabase
+      // Fetch polls
+      const { data: pollsData, error: pollsError } = await supabase
         .from('polls')
         .select('*')
         .order('is_sponsored', { ascending: false })
         .order('created_at', { ascending: false })
-        .limit(50); // More for all polls page
+        .limit(50);
 
-      if (error) {
-        console.error('Error fetching polls:', error);
+      if (pollsError) {
+        console.error('Error fetching polls:', pollsError);
         setIsLoading(false);
         return;
       }
 
-      if (data) {
-        const mappedPolls = data.map(mapPoll);
+      // Fetch votes for all polls
+      const pollIds = pollsData?.map(p => p.id) || [];
+      const { data: votesData, error: votesError } = await supabase
+        .from('votes')
+        .select('poll_id, option_index')
+        .in('poll_id', pollIds);
+
+      if (votesError) {
+        console.error('Error fetching votes:', votesError);
+      }
+
+      // Group votes by poll_id and option_index
+      const voteDataMap: { [pollId: string]: { [optionIndex: number]: number } } = {};
+      votesData?.forEach(vote => {
+        if (!voteDataMap[vote.poll_id]) {
+          voteDataMap[vote.poll_id] = {};
+        }
+        voteDataMap[vote.poll_id][vote.option_index] = (voteDataMap[vote.poll_id][vote.option_index] || 0) + 1;
+      });
+
+      if (pollsData) {
+        const mappedPolls = pollsData.map(poll => mapPoll(poll, voteDataMap));
         setPolls(mappedPolls);
       }
       setIsLoading(false);
