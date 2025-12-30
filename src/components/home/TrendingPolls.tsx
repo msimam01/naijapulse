@@ -82,12 +82,13 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
                 {/* Options Preview */}
                 <div className="space-y-3">
                   {topOptions.map((option, idx) => {
-                    const optionVotes = hasVoteData ? (option as { text: string; votes?: number }).votes || 0 : 0;
+                    // Use voteData if available, otherwise fallback to mock data
+                    const optionVotes = poll.voteData ? poll.voteData[idx] || 0 : (hasVoteData ? (option as { text: string; votes?: number }).votes || 0 : 0);
                     const percentage = totalVotes > 0 ? (optionVotes / totalVotes) * 100 : 0;
                     return (
                       <div key={idx}>
                         <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-foreground truncate pr-2">{option.text}</span>
+                          <span className="text-foreground truncate pr-2">{typeof option === 'string' ? option : option.text}</span>
                           <span className="font-semibold text-primary shrink-0">
                             {percentage.toFixed(0)}%
                           </span>

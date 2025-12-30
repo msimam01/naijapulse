@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Search, Menu, X, Globe, User, Plus, LayoutGrid, LogOut } from "lucide-react";
+import { Search, Menu, X, Globe, User, Plus, LayoutGrid, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +23,29 @@ interface HeaderProps {
 export function Header({ onLoginClick }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const location = useLocation();
   const { language, setLanguage, t } = useLanguage();
   const { user, isAuthenticated, signOut, isLoading } = useAuth();
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
+
+        setIsAdmin(profile?.is_admin || false);
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdmin();
+  }, [user]);
 
   const navLinks = [
     { href: "/", label: t("nav.home") },
@@ -202,6 +223,14 @@ export function Header({ onLoginClick }: HeaderProps) {
                     {t("nav.create")}
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="cursor-pointer">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Admin Panel
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                   <LogOut className="h-4 w-4 mr-2" />
@@ -290,21 +319,30 @@ export function Header({ onLoginClick }: HeaderProps) {
             </nav>
 
             {/* Mobile Actions */}
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-col gap-2 pt-2">
               {isAuthenticated ? (
                 <>
-                  <Link to="/create" className="flex-1" onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/create" onClick={() => setIsMenuOpen(false)}>
                     <Button className="w-full btn-touch gap-2">
                       <Plus className="h-4 w-4" />
                       {t("nav.create")}
                     </Button>
                   </Link>
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" className="w-full btn-touch gap-2">
+                        <Shield className="h-4 w-4" />
+                        Admin Panel
+                      </Button>
+                    </Link>
+                  )}
                   <Button
                     variant="outline"
                     onClick={handleSignOut}
                     className="btn-touch"
                   >
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {language === "pidgin" ? "Comot" : "Sign Out"}
                   </Button>
                 </>
               ) : (
@@ -314,9 +352,9 @@ export function Header({ onLoginClick }: HeaderProps) {
                     onLoginClick();
                     setIsMenuOpen(false);
                   }}
-                  className="flex-1 btn-touch"
+                  className="w-full btn-touch gap-2"
                 >
-                  <User className="h-4 w-4 mr-2" />
+                  <User className="h-4 w-4" />
                   {t("nav.login")}
                 </Button>
               )}

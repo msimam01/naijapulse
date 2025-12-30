@@ -57,18 +57,40 @@ export default function AdminPanel() {
   // Check if user is admin
   useEffect(() => {
     const checkAdmin = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', user.id)
+          .single();
 
-      const admin = profile?.is_admin || false;
-      setIsAdmin(admin);
+        if (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+          setLoading(false);
+          window.location.href = '/';
+          return;
+        }
 
-      if (!admin) {
+        const admin = profile?.is_admin || false;
+        setIsAdmin(admin);
+
+        if (!admin) {
+          setLoading(false);
+          window.location.href = '/';
+          return;
+        }
+
+        // If admin, keep loading true until data is fetched
+      } catch (error) {
+        console.error('Error in admin check:', error);
+        setIsAdmin(false);
+        setLoading(false);
         window.location.href = '/';
         return;
       }
@@ -76,14 +98,6 @@ export default function AdminPanel() {
 
     checkAdmin();
   }, [user]);
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (!loading && !isAdmin) {
-      window.location.href = '/';
-      return;
-    }
-  }, [isAdmin, loading]);
 
   const fetchReports = async () => {
     try {
@@ -238,45 +252,75 @@ export default function AdminPanel() {
 
   const pendingCount = reports.length; // All reports are pending for now
 
+  const sidebarItems = [
+    { id: "users", label: "Users", icon: Users },
+    { id: "polls", label: "Polls", icon: BarChart3 },
+    { id: "reports", label: "Reports", icon: AlertTriangle },
+  ];
+
   return (
     <div className="container py-6 sm:py-10">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8 animate-fade-up">
-          <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
-            <Shield className="h-6 w-6 text-destructive" />
+      <div className="flex gap-8">
+        {/* Sidebar */}
+        <aside className="hidden md:block w-56 shrink-0">
+          <div className="sticky top-24 space-y-1">
+            {sidebarItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id as any)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  activeTab === item.id
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                }`}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </button>
+            ))}
           </div>
-          <div>
-            <h1 className="font-poppins text-2xl sm:text-3xl font-bold text-foreground">
-              Admin Panel
-            </h1>
-            <p className="text-muted-foreground">
-              Manage users, polls, and reports
-            </p>
+        </aside>
+
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          {/* Mobile Tabs */}
+          <div className="flex md:hidden gap-2 mb-6 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
+            {sidebarItems.map((item) => (
+              <Button
+                key={item.id}
+                variant={activeTab === item.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveTab(item.id as any)}
+                className="shrink-0 gap-2"
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Button>
+            ))}
           </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 animate-fade-up delay-100">
-          {[
-            { id: "users", label: "Users", icon: Users },
-            { id: "polls", label: "Polls", icon: BarChart3 },
-            { id: "reports", label: "Reports", icon: AlertTriangle },
-          ].map((tab) => (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? "default" : "outline"}
-              onClick={() => setActiveTab(tab.id as any)}
-              className="gap-2"
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </Button>
-          ))}
-        </div>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8 animate-fade-up">
+            <div>
+              <h1 className="font-poppins text-2xl sm:text-3xl font-bold text-foreground">
+                {activeTab === "users"
+                  ? "Users"
+                  : activeTab === "polls"
+                  ? "Polls"
+                  : "Reports"}
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                {activeTab === "users"
+                  ? "Manage user accounts and permissions"
+                  : activeTab === "polls"
+                  ? "Review and manage polls"
+                  : "Review and manage reported content"}
+              </p>
+            </div>
+          </div>
 
-        {/* Content based on active tab */}
-        {activeTab === "reports" && (
+          {/* Content based on active tab */}
+          {activeTab === "reports" && (
           <>
             {/* Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -382,12 +426,13 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {activeTab === "polls" && (
-          <div className="text-center py-12">
-            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Polls management coming soon</p>
-          </div>
-        )}
+          {activeTab === "polls" && (
+            <div className="text-center py-12">
+              <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Polls management coming soon</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

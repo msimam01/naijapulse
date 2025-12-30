@@ -20,7 +20,7 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
 
   // Convert Supabase poll to Poll interface
-  const mapPoll = (poll: SupabasePoll): Poll => {
+  const mapPoll = (poll: SupabasePoll, voteDataMap?: { [pollId: string]: { [optionIndex: number]: number } }): Poll => {
     // For real Supabase data, options are stored as JSON array of strings
     const options = Array.isArray(poll.options) ? poll.options as string[] : [];
     const now = new Date();
@@ -46,28 +46,70 @@ export default function Index() {
       isTrending,
       is_sponsored: poll.is_sponsored || false,
       image_url: poll.image_url,
+      voteData: voteDataMap?.[poll.id],
     };
   };
 
   // Fetch polls
   useEffect(() => {
     const fetchPolls = async () => {
-      const { data, error } = await supabase
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // First try to get recent trending polls (last 7 days with votes)
+      let { data: recentPolls, error: recentError } = await supabase
         .from('polls')
         .select('*')
+        .gte('created_at', sevenDaysAgo)
+        .gt('vote_count', 0)
         .order('vote_count', { ascending: false })
         .order('is_sponsored', { ascending: false })
-        .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) {
-        console.error('Error fetching polls:', error);
+      if (recentError) {
+        console.error('Error fetching recent polls:', recentError);
         setLoading(false);
         return;
       }
 
-      if (data) {
-        const mappedPolls = data.map(mapPoll);
+      // If we have fewer than 6 recent polls, supplement with all-time top polls
+      if (!recentPolls || recentPolls.length < 6) {
+        const existingIds = recentPolls?.map(p => p.id) || [];
+        const { data: allTimePolls, error: allTimeError } = await supabase
+          .from('polls')
+          .select('*')
+          .not('id', 'in', `(${existingIds.join(',')})`)
+          .order('vote_count', { ascending: false })
+          .order('is_sponsored', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(20 - (recentPolls?.length || 0));
+
+        if (!allTimeError && allTimePolls) {
+          recentPolls = [...(recentPolls || []), ...allTimePolls];
+        }
+      }
+
+      // Fetch votes for all polls to calculate percentages
+      const pollIds = recentPolls?.map(p => p.id) || [];
+      const { data: votesData, error: votesError } = await supabase
+        .from('votes')
+        .select('poll_id, option_index')
+        .in('poll_id', pollIds);
+
+      if (votesError) {
+        console.error('Error fetching votes:', votesError);
+      }
+
+      // Group votes by poll_id and option_index
+      const voteDataMap: { [pollId: string]: { [optionIndex: number]: number } } = {};
+      votesData?.forEach(vote => {
+        if (!voteDataMap[vote.poll_id]) {
+          voteDataMap[vote.poll_id] = {};
+        }
+        voteDataMap[vote.poll_id][vote.option_index] = (voteDataMap[vote.poll_id][vote.option_index] || 0) + 1;
+      });
+
+      if (recentPolls) {
+        const mappedPolls = recentPolls.map(poll => mapPoll(poll, voteDataMap));
         setPolls(mappedPolls);
       }
       setLoading(false);
@@ -85,16 +127,28 @@ export default function Index() {
         schema: 'public',
         table: 'polls',
       }, (payload) => {
+        // For new polls, we don't have voteData yet, but that's okay
         const newPoll = mapPoll(payload.new as SupabasePoll);
-        setPolls(prev => [newPoll, ...prev]);
+        setPolls(prev => [newPoll, ...prev].sort((a, b) => {
+          // Re-sort after adding new poll
+          if (a.is_sponsored && !b.is_sponsored) return -1;
+          if (!a.is_sponsored && b.is_sponsored) return 1;
+          return b.totalVotes - a.totalVotes;
+        }));
       })
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'polls',
       }, (payload) => {
-        const updatedPoll = mapPoll(payload.new as SupabasePoll);
-        setPolls(prev => prev.map(p => p.id === updatedPoll.id ? updatedPoll : p));
+        // Preserve existing voteData when updating poll
+        setPolls(prev => prev.map(p => {
+          if (p.id === payload.new.id) {
+            const updatedPoll = mapPoll(payload.new as SupabasePoll);
+            return { ...updatedPoll, voteData: p.voteData }; // Preserve voteData
+          }
+          return p;
+        }));
       })
       .subscribe();
 

@@ -267,3 +267,9 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trigger_update_comment_count
 AFTER INSERT OR DELETE ON comments
 FOR EACH ROW EXECUTE FUNCTION update_comment_count();
+
+-- Create view for category counts
+CREATE VIEW category_counts AS
+SELECT category, COUNT(*) AS count
+FROM polls
+GROUP BY category;
