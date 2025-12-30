@@ -44,7 +44,23 @@ export function FeaturedPolls({ polls }: FeaturedPollsProps) {
           className="group relative rounded-2xl overflow-hidden bg-card border border-border hover:border-primary/30 transition-all hover:shadow-xl"
         >
           <div className="aspect-[16/10] relative">
-            <div className="absolute inset-0 gradient-naija opacity-90" />
+            {mainPoll.image_url ? (
+              <>
+                <img
+                  src={mainPoll.image_url}
+                  alt={mainPoll.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    console.log('Image failed to load:', mainPoll.image_url);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                <div className="absolute inset-0 bg-black/20" />
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-primary/20" />
+            )}
             <div className="absolute inset-0 p-6 flex flex-col justify-between">
               {/* Top */}
               <div className="flex items-center justify-between">

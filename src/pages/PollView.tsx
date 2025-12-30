@@ -44,7 +44,7 @@ export default function PollView() {
   const { user } = useAuth();
 
   // Hardcoded admin UID - replace with your actual user ID
-  const ADMIN_UID = '1c24e597-f474-4840-aeac-6cd41dd82412';
+  const ADMIN_UID = 'b431bbce-f096-4edd-9d3d-d3a06253f514';
   const isAdmin = user?.id === ADMIN_UID;
 
   const [poll, setPoll] = useState<Poll | null>(null);

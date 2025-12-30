@@ -45,6 +45,7 @@ export default function Index() {
       createdBy: poll.creator_name,
       isTrending,
       is_sponsored: poll.is_sponsored || false,
+      image_url: poll.image_url,
     };
   };
 
