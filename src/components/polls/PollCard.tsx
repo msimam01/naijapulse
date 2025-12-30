@@ -15,6 +15,7 @@ export interface Poll {
   createdBy?: string;
   isTrending?: boolean;
   image_url?: string | null;
+  is_sponsored?: boolean;
 }
 
 type PollOption = { text: string; votes?: number };
@@ -62,6 +63,11 @@ export function PollCard({ poll, index = 0 }: PollCardProps) {
               >
                 {poll.category}
               </Badge>
+              {poll.is_sponsored && (
+                <Badge variant="secondary" className="text-xs gap-1 bg-yellow-400 text-black border-yellow-500">
+                  🔥 Sponsored
+                </Badge>
+              )}
               {poll.isTrending && (
                 <Badge variant="secondary" className="text-xs gap-1 bg-naija-gold/20 text-foreground border-naija-gold/30">
                   <TrendingUp className="h-3 w-3" />

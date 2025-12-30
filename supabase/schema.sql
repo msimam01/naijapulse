@@ -37,7 +37,8 @@ CREATE TABLE polls (
   creator_name TEXT NOT NULL,
   image_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  vote_count INTEGER DEFAULT 0
+  vote_count INTEGER DEFAULT 0,
+  is_sponsored BOOLEAN DEFAULT FALSE
 );
 
 -- Enable RLS on polls
@@ -59,6 +60,17 @@ CREATE POLICY "Creators can update own polls" ON polls
 -- Only the creator can delete their own polls
 CREATE POLICY "Creators can delete own polls" ON polls
   FOR DELETE USING (auth.uid() = creator_id);
+
+-- Only admins can update is_sponsored (replace 'your-admin-uid-here' with actual admin user ID)
+CREATE POLICY "Admins can update sponsored status" ON polls
+  FOR UPDATE USING (
+    auth.uid() = 'your-admin-uid-here' OR
+    auth.uid() = creator_id
+  )
+  WITH CHECK (
+    auth.uid() = 'your-admin-uid-here' OR
+    auth.uid() = creator_id
+  );
 
 -- Create votes table
 CREATE TABLE votes (
@@ -114,6 +126,7 @@ CREATE INDEX idx_polls_creator_id ON polls(creator_id);
 CREATE INDEX idx_polls_category ON polls(category);
 CREATE INDEX idx_polls_created_at ON polls(created_at DESC);
 CREATE INDEX idx_polls_duration_end ON polls(duration_end) WHERE duration_end IS NOT NULL;
+CREATE INDEX idx_polls_is_sponsored ON polls(is_sponsored);
 
 -- Index for votes
 CREATE INDEX idx_votes_poll_id ON votes(poll_id);

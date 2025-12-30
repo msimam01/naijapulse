@@ -45,6 +45,7 @@ export default function AllPolls() {
       timeRemaining,
       createdBy: poll.creator_name,
       isTrending,
+      is_sponsored: poll.is_sponsored || false,
     };
   };
 
@@ -54,6 +55,7 @@ export default function AllPolls() {
       const { data, error } = await supabase
         .from('polls')
         .select('*')
+        .order('is_sponsored', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(50); // More for all polls page
 

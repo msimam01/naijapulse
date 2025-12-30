@@ -76,6 +76,7 @@ export default function CategoryPage() {
       timeRemaining,
       createdBy: poll.creator_name,
       isTrending,
+      is_sponsored: poll.is_sponsored || false,
     };
   };
 
@@ -104,6 +105,7 @@ export default function CategoryPage() {
         .from('polls')
         .select('*')
         .ilike('category', normalizedCategory)
+        .order('is_sponsored', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(50);
 

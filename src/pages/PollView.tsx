@@ -43,6 +43,10 @@ export default function PollView() {
   const { t } = useLanguage();
   const { user } = useAuth();
 
+  // Hardcoded admin UID - replace with your actual user ID
+  const ADMIN_UID = '1c24e597-f474-4840-aeac-6cd41dd82412';
+  const isAdmin = user?.id === ADMIN_UID;
+
   const [poll, setPoll] = useState<Poll | null>(null);
   const [votes, setVotes] = useState<Vote[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
@@ -272,6 +276,39 @@ export default function PollView() {
     }
   };
 
+  const handleToggleSponsored = async () => {
+    if (!poll || !isAdmin) return;
+
+    try {
+      const newSponsoredStatus = !poll.is_sponsored;
+      const { error } = await supabase
+        .from('polls')
+        .update({ is_sponsored: newSponsoredStatus })
+        .eq('id', poll.id);
+
+      if (error) {
+        toast({
+          title: "Failed to update sponsored status",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setPoll(prev => prev ? { ...prev, is_sponsored: newSponsoredStatus } : null);
+      toast({
+        title: newSponsoredStatus ? "Poll marked as sponsored" : "Poll unmarked as sponsored",
+        description: "Changes will be reflected in the feed.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
 
 
@@ -335,9 +372,16 @@ export default function PollView() {
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-6">
             <div className="space-y-2">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                {poll.category}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  {poll.category}
+                </Badge>
+                {poll.is_sponsored && (
+                  <Badge variant="secondary" className="bg-yellow-400 text-black border-yellow-500">
+                    🔥 Sponsored
+                  </Badge>
+                )}
+              </div>
               <h1 className="font-poppins text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
                 {poll.title}
               </h1>
@@ -362,6 +406,28 @@ export default function PollView() {
           <p className="text-base sm:text-lg text-muted-foreground mb-8">
             {poll.question}
           </p>
+
+          {/* Admin Toggle */}
+          {isAdmin && (
+            <div className="mb-6 p-4 bg-secondary/30 rounded-xl border border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-foreground mb-1">Admin Controls</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Toggle sponsored status for this poll
+                  </p>
+                </div>
+                <Button
+                  onClick={handleToggleSponsored}
+                  variant={poll.is_sponsored ? "destructive" : "default"}
+                  size="sm"
+                  className="gap-2"
+                >
+                  {poll.is_sponsored ? "Unmark as Sponsored" : "Mark as Sponsored"}
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Voting Options */}
           <div className="space-y-3 mb-8">

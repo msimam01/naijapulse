@@ -83,6 +83,7 @@ export type Database = {
           image_url: string | null
           created_at: string
           vote_count: number
+          is_sponsored: boolean
         }
         Insert: {
           id?: string
@@ -97,6 +98,7 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           vote_count?: number
+          is_sponsored?: boolean
         }
         Update: {
           id?: string
@@ -111,6 +113,7 @@ export type Database = {
           image_url?: string | null
           created_at?: string
           vote_count?: number
+          is_sponsored?: boolean
         }
         Relationships: [
           {
