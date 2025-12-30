@@ -30,7 +30,7 @@ export function ExploreCategories() {
   const baseCategories: Omit<CategoryData, 'count'>[] = [
     {
       name: t("category.politics"),
-      key: "politics",
+      key: "Politics", // Match database capitalization
       icon: Landmark,
       gradient: "from-red-500/20 to-red-600/10",
       iconBg: "bg-red-500/20",
@@ -38,7 +38,7 @@ export function ExploreCategories() {
     },
     {
       name: t("category.entertainment"),
-      key: "entertainment",
+      key: "Entertainment", // Match database capitalization
       icon: Music,
       gradient: "from-purple-500/20 to-purple-600/10",
       iconBg: "bg-purple-500/20",
@@ -46,7 +46,7 @@ export function ExploreCategories() {
     },
     {
       name: t("category.economy"),
-      key: "economy",
+      key: "Economy", // Match database capitalization
       icon: TrendingUp,
       gradient: "from-primary/20 to-primary/10",
       iconBg: "bg-primary/20",
@@ -54,7 +54,7 @@ export function ExploreCategories() {
     },
     {
       name: t("category.lifestyle"),
-      key: "lifestyle",
+      key: "Lifestyle", // Match database capitalization
       icon: Utensils,
       gradient: "from-orange-500/20 to-orange-600/10",
       iconBg: "bg-orange-500/20",
@@ -62,7 +62,7 @@ export function ExploreCategories() {
     },
     {
       name: t("category.sports"),
-      key: "sports",
+      key: "Sports", // Match database capitalization
       icon: Trophy,
       gradient: "from-naija-gold/30 to-naija-gold/10",
       iconBg: "bg-naija-gold/30",
@@ -70,7 +70,7 @@ export function ExploreCategories() {
     },
     {
       name: t("category.technology"),
-      key: "technology",
+      key: "Technology", // Match database capitalization
       icon: Smartphone,
       gradient: "from-blue-500/20 to-blue-600/10",
       iconBg: "bg-blue-500/20",
@@ -94,7 +94,9 @@ export function ExploreCategories() {
       if (data) {
         const counts: Record<string, number> = {};
         data.forEach(poll => {
-          counts[poll.category] = (counts[poll.category] || 0) + 1;
+          if (poll.category) {
+            counts[poll.category] = (counts[poll.category] || 0) + 1;
+          }
         });
         setCategoryCounts(counts);
       }
@@ -130,7 +132,7 @@ export function ExploreCategories() {
         {categories.map((category, index) => (
           <Link
             key={category.key}
-            to={`/category/${category.key}`}
+            to={`/category/${category.key.toLowerCase()}`}
             className={`group relative bg-gradient-to-br ${category.gradient} rounded-xl p-5 border border-border hover:border-primary/30 hover:shadow-lg transition-all animate-fade-up`}
             style={{ animationDelay: `${index * 50}ms` }}
           >
