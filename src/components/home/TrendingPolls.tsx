@@ -34,11 +34,17 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {polls.map((poll, index) => {
+            console.log('Trending poll:', poll.id, 'totalVotes:', poll.totalVotes, 'voteData:', poll.voteData);
             const topOptions = poll.options.slice(0, 3);
             const hasVoteData = poll.options.length > 0 && typeof poll.options[0] === 'object' && 'votes' in poll.options[0];
-            const totalVotes = hasVoteData
-              ? (poll.options as { text: string; votes?: number }[]).reduce((acc, opt) => acc + (opt.votes || 0), 0)
-              : poll.totalVotes;
+
+            // Calculate total votes: prefer voteData sum, fallback to poll.totalVotes
+            let totalVotes = poll.totalVotes;
+            if (poll.voteData) {
+              totalVotes = Object.values(poll.voteData).reduce((sum, count) => sum + count, 0);
+            } else if (hasVoteData) {
+              totalVotes = (poll.options as { text: string; votes?: number }[]).reduce((acc, opt) => acc + (opt.votes || 0), 0);
+            }
 
             return (
               <Link
@@ -76,7 +82,7 @@ export function TrendingPolls({ polls }: TrendingPollsProps) {
 
                 {/* Vote Count */}
                 <p className="text-sm text-muted-foreground mb-4">
-                  {poll.totalVotes.toLocaleString()} {t("poll.votes")}
+                  {totalVotes.toLocaleString()} {t("poll.votes")}
                 </p>
 
                 {/* Options Preview */}

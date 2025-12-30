@@ -108,8 +108,14 @@ export default function Index() {
         voteDataMap[vote.poll_id][vote.option_index] = (voteDataMap[vote.poll_id][vote.option_index] || 0) + 1;
       });
 
+      console.log('Vote data map:', voteDataMap);
+
       if (recentPolls) {
-        const mappedPolls = recentPolls.map(poll => mapPoll(poll, voteDataMap));
+        const mappedPolls = recentPolls.map(poll => {
+          const mapped = mapPoll(poll, voteDataMap);
+          console.log('Mapped poll:', poll.id, 'voteData:', mapped.voteData, 'totalVotes:', mapped.totalVotes);
+          return mapped;
+        });
         setPolls(mappedPolls);
       }
       setLoading(false);
