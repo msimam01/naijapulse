@@ -364,7 +364,7 @@ export default function PollView() {
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          {t("pollView.back")}
+          {t("poll.back")}
         </Link>
 
         {/* Poll Card */}

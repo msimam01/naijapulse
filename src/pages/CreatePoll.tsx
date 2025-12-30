@@ -40,9 +40,8 @@ export default function CreatePoll() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [showAuthModal, setShowAuthModal] = useState(false);
-
   const [formData, setFormData] = useState({
     title: "",
     question: "",
@@ -214,10 +213,8 @@ export default function CreatePoll() {
       }
 
       toast({
-        title: language === "pidgin" ? "Poll Don Ready! 🎉" : "Poll Created! 🎉",
-        description: language === "pidgin"
-          ? "Your poll don dey live, people fit vote now."
-          : "Your poll is now live and ready for votes.",
+        title: t("toast.pollCreated"),
+        description: t("toast.pollCreatedDesc"),
       });
 
       // Navigate to the new poll
@@ -225,9 +222,9 @@ export default function CreatePoll() {
 
     } catch (error: unknown) {
       console.error('Error creating poll:', error);
-      const errorMessage = error instanceof Error ? error.message : (language === "pidgin" ? "Something go wrong, try again" : "Something went wrong, please try again");
+      const errorMessage = error instanceof Error ? error.message : t("common.somethingWrong");
       toast({
-        title: language === "pidgin" ? "Error" : "Error",
+        title: t("common.error"),
         description: errorMessage,
         variant: "destructive",
       });
@@ -248,20 +245,18 @@ export default function CreatePoll() {
               <LogIn className="h-10 w-10 text-primary" />
             </div>
             <h1 className="font-poppins text-2xl sm:text-3xl font-bold text-foreground">
-              {language === "pidgin" ? "Login to Create Poll" : "Login to Create a Poll"}
+              {t("auth.loginPrompt")}
             </h1>
             <p className="text-muted-foreground">
-              {language === "pidgin" 
-                ? "You need to login first before you fit create poll. E quick o, no wahala!"
-                : "You need to be logged in to create polls. It's quick and easy!"}
+              {t("auth.loginDesc")}
             </p>
-            <Button 
+            <Button
               onClick={() => setShowAuthModal(true)}
               className="btn-touch gap-2"
               size="lg"
             >
               <LogIn className="h-5 w-5" />
-              {language === "pidgin" ? "Login / Sign Up" : "Login / Sign Up"}
+              {t("auth.loginSignup")}
             </Button>
           </div>
         </div>
@@ -276,12 +271,10 @@ export default function CreatePoll() {
         <div className="max-w-5xl mx-auto">
           <div className="mb-8 animate-fade-up">
             <h1 className="font-poppins text-2xl sm:text-3xl font-bold text-foreground">
-              {language === "pidgin" ? "Create Poll" : "Create a Poll"}
+              {t("create.title")}
             </h1>
             <p className="text-muted-foreground mt-2">
-              {language === "pidgin" 
-                ? "Ask Naija wetin dem think about anything"
-                : "Ask Naija what they think about anything"}
+              {t("auth.askNaija")}
             </p>
           </div>
 
@@ -291,7 +284,7 @@ export default function CreatePoll() {
               {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-sm font-medium">
-                  {language === "pidgin" ? "Poll Title" : "Poll Title"} <span className="text-destructive">*</span>
+                  {t("create.pollTitle")} <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="title"
@@ -306,11 +299,11 @@ export default function CreatePoll() {
               {/* Question */}
               <div className="space-y-2">
                 <Label htmlFor="question" className="text-sm font-medium">
-                  {language === "pidgin" ? "Your Question" : "Your Question"} <span className="text-destructive">*</span>
+                  {t("create.question")} <span className="text-destructive">*</span>
                 </Label>
                 <Textarea
                   id="question"
-                  placeholder={language === "pidgin" ? "Wetin you wan ask?" : "What do you want to ask?"}
+                  placeholder={t("create.question")}
                   value={formData.question}
                   onChange={(e) => setFormData({ ...formData, question: e.target.value })}
                   className="min-h-[100px] resize-none"
@@ -322,12 +315,10 @@ export default function CreatePoll() {
               <div className="flex items-center justify-between p-4 bg-secondary rounded-xl">
                 <div>
                   <Label className="text-sm font-medium">
-                    {language === "pidgin" ? "Yes/No Question" : "Yes/No Question"}
+                    {t("create.yesNoQuestion")}
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {language === "pidgin" 
-                      ? "Turn on for simple yes or no polls"
-                      : "Toggle for simple yes or no polls"}
+                    {t("create.yesNoDesc")}
                   </p>
                 </div>
                 <Switch
@@ -342,7 +333,7 @@ export default function CreatePoll() {
               {!formData.isYesNo && (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">
-                    {language === "pidgin" ? "Answer Options" : "Answer Options"} <span className="text-destructive">*</span>
+                    {t("create.answerOptions")} <span className="text-destructive">*</span>
                   </Label>
                   <div className="space-y-2">
                     {formData.options.map((option, index) => (
@@ -376,7 +367,7 @@ export default function CreatePoll() {
                       onClick={handleAddOption}
                     >
                       <Plus className="h-4 w-4" />
-                      {language === "pidgin" ? "Add Option" : "Add Option"}
+                      {t("create.addOption")}
                     </Button>
                   )}
                   <p className="text-xs text-muted-foreground">
@@ -389,7 +380,7 @@ export default function CreatePoll() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
-                    {language === "pidgin" ? "Category" : "Category"} <span className="text-destructive">*</span>
+                    {t("create.category")} <span className="text-destructive">*</span>
                   </Label>
                   <Select
                     value={formData.category}
@@ -398,7 +389,7 @@ export default function CreatePoll() {
                     }
                   >
                     <SelectTrigger className="h-12">
-                      <SelectValue placeholder={language === "pidgin" ? "Pick category" : "Select category"} />
+                      <SelectValue placeholder={t("create.pickCategory")} />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((cat) => (
@@ -412,7 +403,7 @@ export default function CreatePoll() {
 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">
-                    {language === "pidgin" ? "How Long" : "Duration"}
+                    {t("create.duration")}
                   </Label>
                   <Select
                     value={formData.duration}
@@ -437,7 +428,7 @@ export default function CreatePoll() {
               {/* Image Upload */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
-                  {language === "pidgin" ? "Cover Image (Optional)" : "Cover Image (Optional)"}
+                  {t("create.coverImage")}
                 </Label>
                 <div className="relative">
                   <input
@@ -453,7 +444,7 @@ export default function CreatePoll() {
                   >
                     <Image className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      {formData.image ? formData.image.name : (language === "pidgin" ? "Upload image" : "Upload an image")}
+                      {formData.image ? t("create.imageName") : t("create.uploadImage")}
                     </span>
                   </label>
                 </div>
@@ -469,12 +460,12 @@ export default function CreatePoll() {
                 {isSubmitting ? (
                   <>
                     <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                    {language === "pidgin" ? "Dey publish..." : "Publishing..."}
+                    {t("create.publishing")}
                   </>
                 ) : (
                   <>
                     <Check className="h-5 w-5" />
-                    {language === "pidgin" ? "Publish Poll" : "Publish Poll"}
+                    {t("create.publish")}
                   </>
                 )}
               </Button>
@@ -486,7 +477,7 @@ export default function CreatePoll() {
                 <div className="flex items-center gap-2 mb-4">
                   <Eye className="h-5 w-5 text-muted-foreground" />
                   <span className="font-medium text-muted-foreground">
-                    {language === "pidgin" ? "Preview" : "Preview"}
+                    {t("create.preview")}
                   </span>
                 </div>
 
@@ -508,10 +499,10 @@ export default function CreatePoll() {
                       </span>
                     )}
                     <h3 className="font-poppins font-bold text-lg text-foreground">
-                      {formData.title || (language === "pidgin" ? "Your poll title" : "Your poll title")}
+                      {formData.title || t("create.pollTitle")}
                     </h3>
                     <p className="text-sm text-muted-foreground">
-                      {formData.question || (language === "pidgin" ? "Your question go show here" : "Your question will appear here")}
+                      {formData.question || t("create.question")}
                     </p>
                   </div>
 
@@ -522,7 +513,7 @@ export default function CreatePoll() {
                         className="h-12 bg-secondary rounded-lg flex items-center px-4"
                       >
                         <span className="text-sm text-foreground">
-                          {option || `Option ${index + 1}`}
+                          {option || `${t("create.optionPlaceholder")} ${index + 1}`}
                         </span>
                       </div>
                     ))}
@@ -532,10 +523,8 @@ export default function CreatePoll() {
                     <Clock className="h-4 w-4" />
                     <span>
                       {formData.duration === "0"
-                        ? (language === "pidgin" ? "No time limit" : "No time limit")
-                        : `${formData.duration} day${
-                            formData.duration === "1" ? "" : "s"
-                          } remaining`}
+                        ? t("states.noLimit")
+                        : `${formData.duration} ${formData.duration === "1" ? t("states.day") : t("states.days")} ${t("states.remaining")}`}
                     </span>
                   </div>
                 </div>

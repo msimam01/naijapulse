@@ -145,12 +145,12 @@ export function Header({ onLoginClick }: HeaderProps) {
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setLanguage("en")}>
                 <span className={language === "en" ? "font-semibold text-primary" : ""}>
-                  🇬🇧 English
+                  🇬🇧 {t("language.english")}
                 </span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setLanguage("pidgin")}>
                 <span className={language === "pidgin" ? "font-semibold text-primary" : ""}>
-                  🇳🇬 Pidgin
+                  🇳🇬 {t("language.pidgin")}
                 </span>
               </DropdownMenuItem>
             </DropdownMenuContent>

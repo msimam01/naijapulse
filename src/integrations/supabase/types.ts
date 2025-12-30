@@ -129,16 +129,19 @@ export type Database = {
         Row: {
           id: string
           display_name: string
+          language_preference: string | null
           created_at: string
         }
         Insert: {
           id: string
           display_name: string
+          language_preference?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           display_name?: string
+          language_preference?: string | null
           created_at?: string
         }
         Relationships: [

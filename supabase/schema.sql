@@ -5,6 +5,7 @@
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT NOT NULL,
+  language_preference TEXT DEFAULT 'en' CHECK (language_preference IN ('en', 'pidgin')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
