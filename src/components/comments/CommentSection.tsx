@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import { ReportModal } from "@/components/ui/ReportModal";
 
 type Comment = Tables<'comments'>;
 
@@ -171,14 +172,7 @@ export default function CommentSection({ pollId, onCommentCountChange }: Comment
     }
   };
 
-  const handleReport = (commentId: number) => {
-    // For now, just log the report - future moderation system
-    console.log(`Report comment ${commentId} for moderation`);
-    toast({
-      title: "Report submitted",
-      description: "Thank you for reporting this comment. It will be reviewed by our moderators.",
-    });
-  };
+
 
   const renderComment = (comment: CommentWithReplies, isReply = false) => (
     <div key={comment.id} className={`${isReply ? 'ml-8 mt-3' : 'mb-6'} animate-fade-in`}>
@@ -209,13 +203,16 @@ export default function CommentSection({ pollId, onCommentCountChange }: Comment
                 Reply
               </button>
             )}
-            <button
-              onClick={() => handleReport(comment.id)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-600 transition-colors"
-            >
-              <Flag className="h-3 w-3" />
-              Report
-            </button>
+            <ReportModal
+              targetType="comment"
+              targetId={comment.id.toString()}
+              trigger={
+                <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-600 transition-colors">
+                  <Flag className="h-3 w-3" />
+                  Report
+                </button>
+              }
+            />
           </div>
 
           {/* Reply form */}

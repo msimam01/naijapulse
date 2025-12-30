@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Clock, MessageCircle, Users, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ShareButtons } from "@/components/ui/ShareButtons";
+import { ReportModal } from "@/components/ui/ReportModal";
 
 export interface Poll {
   id: string;
@@ -154,18 +155,28 @@ export function PollCard({ poll, index = 0 }: PollCardProps) {
             </span>
           </div>
 
-          {/* Share Buttons */}
-          <div
-            onClick={(e) => e.preventDefault()} // Prevent navigation when clicking share buttons
-            className="pt-2"
-          >
-            <ShareButtons
-              title={poll.title}
-              question={poll.question}
-              url={`${window.location.origin}/poll/${poll.id}`}
-              imageUrl={poll.image_url}
-              variant="compact"
-            />
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-2">
+            <div
+              onClick={(e) => e.preventDefault()} // Prevent navigation when clicking share buttons
+            >
+              <ShareButtons
+                title={poll.title}
+                question={poll.question}
+                url={`${window.location.origin}/poll/${poll.id}`}
+                imageUrl={poll.image_url}
+                variant="compact"
+              />
+            </div>
+
+            <div
+              onClick={(e) => e.preventDefault()} // Prevent navigation when clicking report button
+            >
+              <ReportModal
+                targetType="poll"
+                targetId={poll.id}
+              />
+            </div>
           </div>
         </div>
       </article>

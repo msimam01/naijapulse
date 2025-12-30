@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Shield,
   AlertTriangle,
@@ -13,92 +13,192 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Tables } from "@/integrations/supabase/types";
+import { formatDistanceToNow } from "date-fns";
 
-interface Report {
-  id: string;
-  type: "poll" | "comment";
-  title: string;
-  reason: string;
-  reportedBy: string;
-  reportedAt: string;
-  status: "pending" | "resolved" | "dismissed";
+type Report = Tables<'reports'>;
+
+interface ReportWithContent extends Report {
+  poll_title?: string;
+  poll_question?: string;
+  comment_content?: string;
+  creator_name?: string;
 }
 
-const mockReports: Report[] = [
-  {
-    id: "r1",
-    type: "poll",
-    title: "Inappropriate poll about celebrities",
-    reason: "Contains defamatory content",
-    reportedBy: "User123",
-    reportedAt: "2 hours ago",
-    status: "pending",
-  },
-  {
-    id: "r2",
-    type: "comment",
-    title: "Offensive comment on 2027 Election poll",
-    reason: "Hate speech",
-    reportedBy: "NaijaPatriot",
-    reportedAt: "5 hours ago",
-    status: "pending",
-  },
-  {
-    id: "r3",
-    type: "poll",
-    title: "Spam poll promoting products",
-    reason: "Spam/Advertising",
-    reportedBy: "LagosGirl",
-    reportedAt: "1 day ago",
-    status: "pending",
-  },
-  {
-    id: "r4",
-    type: "comment",
-    title: "Threatening message to other user",
-    reason: "Threats/Harassment",
-    reportedBy: "AbujaVibes",
-    reportedAt: "2 days ago",
-    status: "resolved",
-  },
-];
+const ADMIN_UID = 'your-admin-uid-here'; // Replace with actual admin user ID
 
 export default function AdminPanel() {
+  const { user } = useAuth();
   const { toast } = useToast();
-  const [reports, setReports] = useState(mockReports);
+  const [reports, setReports] = useState<ReportWithContent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "resolved">("all");
+
+  // Check if user is admin
+  const isAdmin = user?.id === ADMIN_UID;
+
+  // Redirect if not admin
+  useEffect(() => {
+    if (!loading && !isAdmin) {
+      window.location.href = '/';
+      return;
+    }
+  }, [isAdmin, loading]);
+
+  const fetchReports = async () => {
+    try {
+      const { data: reportsData, error } = await supabase
+        .from('reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Enrich reports with content preview
+      const enrichedReports: ReportWithContent[] = await Promise.all(
+        reportsData.map(async (report) => {
+          if (report.target_type === 'poll') {
+            const { data: poll } = await supabase
+              .from('polls')
+              .select('title, question, creator_name')
+              .eq('id', report.target_id)
+              .single();
+
+            return {
+              ...report,
+              poll_title: poll?.title,
+              poll_question: poll?.question,
+              creator_name: poll?.creator_name,
+            };
+          } else if (report.target_type === 'comment') {
+            const { data: comment } = await supabase
+              .from('comments')
+              .select('content, creator_name')
+              .eq('id', parseInt(report.target_id))
+              .single();
+
+            return {
+              ...report,
+              comment_content: comment?.content,
+              creator_name: comment?.creator_name,
+            };
+          }
+          return report;
+        })
+      );
+
+      setReports(enrichedReports);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load reports.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchReports();
+    }
+  }, [isAdmin]);
 
   const filteredReports = reports.filter((report) => {
     if (filter === "all") return true;
-    if (filter === "pending") return report.status === "pending";
-    if (filter === "resolved") return report.status === "resolved" || report.status === "dismissed";
+    // For now, all reports are "pending" since we don't have a status field
+    // In future, add status field to reports table
     return true;
   });
 
-  const handleAction = (id: string, action: "delete" | "edit" | "dismiss") => {
-    setReports((prev) =>
-      prev.map((report) =>
-        report.id === id
-          ? {
-              ...report,
-              status: action === "dismiss" ? "dismissed" : "resolved",
-            }
-          : report
-      )
-    );
+  const handleDelete = async (report: ReportWithContent) => {
+    try {
+      if (report.target_type === 'poll') {
+        const { error } = await supabase
+          .from('polls')
+          .delete()
+          .eq('id', report.target_id);
 
-    toast({
-      title:
-        action === "delete"
-          ? "Content deleted"
-          : action === "edit"
-          ? "Content edited"
-          : "Report dismissed",
-      description: `The ${action === "dismiss" ? "report has been dismissed" : "content has been " + action + "d"}.`,
-    });
+        if (error) throw error;
+      } else if (report.target_type === 'comment') {
+        const { error } = await supabase
+          .from('comments')
+          .delete()
+          .eq('id', parseInt(report.target_id));
+
+        if (error) throw error;
+      }
+
+      // Remove the report
+      const { error: reportError } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', report.id);
+
+      if (reportError) throw reportError;
+
+      setReports(prev => prev.filter(r => r.id !== report.id));
+      toast({
+        title: "Content deleted",
+        description: `The ${report.target_type} has been removed.`,
+      });
+    } catch (error) {
+      console.error('Error deleting content:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete content.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const pendingCount = reports.filter((r) => r.status === "pending").length;
+  const handleDismiss = async (report: ReportWithContent) => {
+    try {
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', report.id);
+
+      if (error) throw error;
+
+      setReports(prev => prev.filter(r => r.id !== report.id));
+      toast({
+        title: "Report dismissed",
+        description: "The report has been dismissed.",
+      });
+    } catch (error) {
+      console.error('Error dismissing report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to dismiss report.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Show loading or redirect for non-admin
+  if (loading) {
+    return (
+      <div className="container py-6 sm:py-10">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-12">
+            <Shield className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null; // Will redirect via useEffect
+  }
+
+  const pendingCount = reports.length; // All reports are pending for now
 
   return (
     <div className="container py-6 sm:py-10">
@@ -182,76 +282,71 @@ export default function AdminPanel() {
                     <Badge
                       variant="outline"
                       className={
-                        report.type === "poll"
+                        report.target_type === "poll"
                           ? "bg-primary/10 text-primary border-primary/20"
                           : "bg-secondary text-secondary-foreground"
                       }
                     >
-                      {report.type === "poll" ? (
+                      {report.target_type === "poll" ? (
                         <BarChart3 className="h-3 w-3 mr-1" />
                       ) : (
                         <MessageCircle className="h-3 w-3 mr-1" />
                       )}
-                      {report.type}
+                      {report.target_type}
                     </Badge>
                     <Badge
                       variant="secondary"
-                      className={
-                        report.status === "pending"
-                          ? "bg-naija-gold/20 text-foreground"
-                          : report.status === "resolved"
-                          ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground"
-                      }
+                      className="bg-naija-gold/20 text-foreground"
                     >
-                      {report.status}
+                      Pending
                     </Badge>
                   </div>
 
-                  <h3 className="font-semibold text-foreground mb-1">{report.title}</h3>
+                  <h3 className="font-semibold text-foreground mb-1">
+                    {report.target_type === 'poll' ? report.poll_title : report.comment_content?.slice(0, 100) + '...'}
+                  </h3>
 
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                    <span>
-                      <strong>Reason:</strong> {report.reason}
-                    </span>
-                    <span>
-                      <strong>By:</strong> {report.reportedBy}
-                    </span>
-                    <span>{report.reportedAt}</span>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    {report.target_type === 'poll' && report.poll_question && (
+                      <p className="text-xs italic">{report.poll_question.slice(0, 150)}...</p>
+                    )}
+                    {report.details && (
+                      <p className="text-xs italic">"{report.details}"</p>
+                    )}
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      <span>
+                        <strong>Reason:</strong> {report.reason}
+                      </span>
+                      <span>
+                        <strong>Creator:</strong> {report.creator_name || 'Unknown'}
+                      </span>
+                      <span>
+                        {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {report.status === "pending" && (
-                  <div className="flex gap-2 shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => handleAction(report.id, "edit")}
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => handleAction(report.id, "delete")}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => handleAction(report.id, "dismiss")}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                      Dismiss
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-2 shrink-0">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => handleDelete(report)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => handleDismiss(report)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    Dismiss
+                  </Button>
+                </div>
               </div>
             </div>
           ))}

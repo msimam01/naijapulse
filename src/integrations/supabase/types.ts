@@ -151,6 +151,47 @@ export type Database = {
           }
         ]
       }
+      reports: {
+        Row: {
+          id: number
+          target_type: string
+          target_id: string
+          reason: string
+          details: string | null
+          reporter_id: string | null
+          guest_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          target_type: string
+          target_id: string
+          reason: string
+          details?: string | null
+          reporter_id?: string | null
+          guest_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          target_type?: string
+          target_id?: string
+          reason?: string
+          details?: string | null
+          reporter_id?: string | null
+          guest_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       votes: {
         Row: {
           id: number
