@@ -17,7 +17,7 @@ export function SEO({
   type = "website",
   keywords = "Nigeria polls, Nigerian opinions, Naija pulse, voting platform, public opinion Nigeria, Nigerian survey",
 }: SEOProps) {
-  const siteUrl = "https://naijapulse.lovable.app";
+  const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
   const fullImageUrl = image.startsWith("http") ? image : `${siteUrl}${image}`;
   const fullUrl = url.startsWith("http") ? url : `${siteUrl}${url}`;
 
