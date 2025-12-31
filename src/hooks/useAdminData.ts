@@ -67,16 +67,37 @@ export const useAdminData = () => {
     }
   };
 
-  // Fetch all polls
+  // Fetch all polls with accurate vote/comment counts
   const fetchPolls = async () => {
     try {
-      const { data, error } = await supabase
+      // First get all polls
+      const { data: pollsData, error: pollsError } = await supabase
         .from('polls')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setPolls(data);
+      if (pollsError) throw pollsError;
+
+      // Then get accurate counts for each poll
+      const pollsWithCounts = await Promise.all(
+        (pollsData || []).map(async (poll) => {
+          const [
+            { count: voteCount },
+            { count: commentCount }
+          ] = await Promise.all([
+            supabase.from('votes').select('*', { count: 'exact', head: true }).eq('poll_id', poll.id),
+            supabase.from('comments').select('*', { count: 'exact', head: true }).eq('poll_id', poll.id)
+          ]);
+
+          return {
+            ...poll,
+            vote_count: voteCount || 0,
+            comment_count: commentCount || 0,
+          };
+        })
+      );
+
+      setPolls(pollsWithCounts);
     } catch (err) {
       console.error('Error fetching polls:', err);
       setError('Failed to load polls');

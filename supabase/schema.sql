@@ -76,9 +76,12 @@ CREATE POLICY "Authenticated users can create polls" ON polls
 CREATE POLICY "Creators can update own polls" ON polls
   FOR UPDATE USING (auth.uid() = creator_id);
 
--- Only the creator can delete their own polls
-CREATE POLICY "Creators can delete own polls" ON polls
-  FOR DELETE USING (auth.uid() = creator_id);
+-- Creators and admins can delete polls
+CREATE POLICY "Creators and admins can delete polls" ON polls
+  FOR DELETE USING (
+    auth.uid() = creator_id OR
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE)
+  );
 
 -- Only admins can update is_sponsored
 CREATE POLICY "Admins can update sponsored status" ON polls
