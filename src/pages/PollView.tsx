@@ -25,6 +25,7 @@ import { ResultChart } from "@/components/polls/ResultChart";
 import { SEO } from "@/components/SEO";
 import CommentSection from "@/components/comments/CommentSection";
 import { ShareButtons } from "@/components/ui/ShareButtons";
+import { ReportModal } from "@/components/ui/ReportModal";
 
 
 type Poll = Tables<'polls'>;
@@ -394,9 +395,15 @@ export default function PollView() {
                 {poll.title}
               </h1>
             </div>
-            <Button variant="ghost" size="icon" className="shrink-0">
-              <Flag className="h-5 w-5 text-muted-foreground" />
-            </Button>
+            <ReportModal
+              targetType="poll"
+              targetId={poll.id}
+              trigger={
+                <Button variant="ghost" size="icon" className="shrink-0">
+                  <Flag className="h-5 w-5 text-muted-foreground" />
+                </Button>
+              }
+            />
           </div>
 
           {/* Image */}
