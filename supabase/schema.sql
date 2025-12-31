@@ -34,6 +34,14 @@ CREATE POLICY "Users can update own profile" ON profiles
 CREATE POLICY "Allow profile updates for admin operations" ON profiles
   FOR UPDATE USING (true);
 
+-- Allow profile deletes for admin functionality
+CREATE POLICY "Allow profile deletes for admin operations" ON profiles
+  FOR DELETE USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE));
+
+-- Allow profile inserts for admin functionality (for creating users)
+CREATE POLICY "Allow profile inserts for admin operations" ON profiles
+  FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE));
+
 -- Create polls table
 CREATE TABLE polls (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
