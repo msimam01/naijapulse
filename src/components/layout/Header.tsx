@@ -60,7 +60,8 @@ export function Header({ onLoginClick }: HeaderProps) {
   const navLinks = [
     { href: "/", label: t("nav.home") },
     { href: "/polls", label: t("nav.polls") },
-    { href: "/dashboard", label: t("nav.myPolls") },
+    // Only show dashboard link if user is not admin
+    ...(isAdmin ? [] : [{ href: "/dashboard", label: t("nav.myPolls") }]),
   ];
 
   const categoryLinks = [
@@ -216,12 +217,14 @@ export function Header({ onLoginClick }: HeaderProps) {
                   </p>
                 </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard" className="cursor-pointer">
-                    <User className="h-4 w-4 mr-2" />
-                    {t("nav.myPolls")}
-                  </Link>
-                </DropdownMenuItem>
+                {!isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="cursor-pointer">
+                      <User className="h-4 w-4 mr-2" />
+                      {t("nav.myPolls")}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link to="/create" className="cursor-pointer">
                     <Plus className="h-4 w-4 mr-2" />

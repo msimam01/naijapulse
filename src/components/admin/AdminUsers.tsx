@@ -47,7 +47,6 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
   // Form state for add/edit user
   const [formData, setFormData] = useState({
     email: '',
-    password: '',
     display_name: '',
     is_admin: false,
   });
@@ -55,7 +54,6 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
   const resetForm = () => {
     setFormData({
       email: '',
-      password: '',
       display_name: '',
       is_admin: false,
     });
@@ -66,14 +64,13 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
     setEditingUser(user);
     setFormData({
       email: user.email || '',
-      password: '', // Don't populate password for security
       display_name: user.display_name,
       is_admin: user.is_admin,
     });
   };
 
   const handleAddUser = async () => {
-    if (!formData.email || !formData.password || !formData.display_name) {
+    if (!formData.email || !formData.display_name) {
       toast({
         title: 'Error',
         description: 'Please fill in all required fields.',
@@ -84,40 +81,74 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Sign up the user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      console.log('AdminUsers: Sending magic link to:', formData.email);
+
+      // Send magic link - this will create user if they don't exist
+      const { error: authError } = await supabase.auth.signInWithOtp({
         email: formData.email,
-        password: formData.password,
-      });
-
-      if (authError) throw authError;
-
-      if (authData.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
+        options: {
+          shouldCreateUser: true,
+          data: {
             display_name: formData.display_name,
             is_admin: formData.is_admin,
-          });
+            created_by_admin: true,
+          }
+        },
+      });
 
-        if (profileError) throw profileError;
+      if (authError) {
+        console.error('Auth error:', authError);
 
-        toast({
-          title: 'Success',
-          description: 'User created successfully.',
+        // Fallback: Try the working signUp approach with auto-generated password
+        console.log('Trying fallback signUp approach...');
+        const tempPassword = `TempPass${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: tempPassword,
+          options: {
+            data: {
+              display_name: formData.display_name,
+              is_admin: formData.is_admin,
+              created_by_admin: true,
+              temp_password: true,
+            }
+          }
         });
 
-        setAddUserDialog(false);
-        resetForm();
-        onRefresh();
+        if (signUpError) {
+          console.error('SignUp fallback also failed:', signUpError);
+          throw signUpError;
+        }
+
+        if (signUpData.user) {
+          console.log('User created with signUp, magic link workflow will be available');
+          toast({
+            title: 'Success',
+            description: 'User created! They can now sign in with magic link.',
+          });
+
+          setAddUserDialog(false);
+          resetForm();
+          onRefresh();
+          return;
+        }
       }
+
+      console.log('Magic link sent successfully');
+      toast({
+        title: 'Success',
+        description: 'Magic link sent to new user!',
+      });
+
+      setAddUserDialog(false);
+      resetForm();
+      onRefresh();
     } catch (error: any) {
-      console.error('Error adding user:', error);
+      console.error('Error creating user:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create user.',
+        description: error.message || 'Failed to create user. Please check Supabase auth settings.',
         variant: 'destructive',
       });
     } finally {
@@ -324,16 +355,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
                 placeholder="user@example.com"
               />
             </div>
-            <div>
-              <Label htmlFor="password">Password *</Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                placeholder="Enter password"
-              />
-            </div>
+
             <div>
               <Label htmlFor="display_name">Display Name *</Label>
               <Input
@@ -357,7 +379,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
                 disabled={isSubmitting}
                 className="flex-1"
               >
-                {isSubmitting ? 'Creating...' : 'Create User'}
+                {isSubmitting ? 'Sending...' : 'Send Magic Link'}
               </Button>
               <Button
                 variant="outline"

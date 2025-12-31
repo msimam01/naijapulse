@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Auto-create profile on authentication events
           if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-            const displayName = generateDisplayName(session.user);
+            console.log('AuthContext: Processing user sign in:', session.user.id);
 
             try {
               // Check if profile already exists
@@ -77,14 +77,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .single();
 
               if (!existingProfile) {
+                // For new users, check if they have custom metadata from magic link
+                const userMeta = session.user.user_metadata;
+                const displayName = userMeta?.display_name || generateDisplayName(session.user);
+                const isAdmin = userMeta?.is_admin || false;
+
+                console.log('AuthContext: Creating new profile for user:', {
+                  id: session.user.id,
+                  displayName,
+                  isAdmin,
+                  hasMeta: !!userMeta?.display_name
+                });
+
                 // Create new profile
                 const { error } = await supabase.from('profiles').insert({
                   id: session.user.id,
                   display_name: displayName,
+                  is_admin: isAdmin,
                 });
                 if (error) console.error('Profile creation error:', error);
               } else {
                 // Update existing profile (in case display_name changed)
+                const displayName = generateDisplayName(session.user);
                 const { error } = await supabase.from('profiles').upsert({
                   id: session.user.id,
                   display_name: displayName,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   PlusCircle,
@@ -42,12 +42,38 @@ type SupabasePoll = Tables<'polls'>;
 export default function Dashboard() {
   const { user } = useAuth();
   const { t, setLanguage } = useLanguage();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("my-polls");
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalPolls: 0, totalVotes: 0, totalComments: 0 });
   const [displayName, setDisplayName] = useState("");
   const [updating, setUpdating] = useState(false);
+
+  // Check if user is admin and redirect if so
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (user) {
+        try {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .single();
+
+          if (!error && profile?.is_admin) {
+            console.log('Dashboard: Admin user detected, redirecting to /admin');
+            navigate('/admin');
+            return;
+          }
+        } catch (error) {
+          console.error('Dashboard: Error checking admin status:', error);
+        }
+      }
+    };
+
+    checkAdminStatus();
+  }, [user, navigate]);
 
   // Convert Supabase poll to Poll interface
   const mapPoll = (poll: SupabasePoll): Poll => {
