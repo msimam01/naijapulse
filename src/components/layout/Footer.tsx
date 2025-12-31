@@ -112,7 +112,7 @@ export function Footer() {
             <ul className="space-y-3">
               <li className="flex items-center gap-2 text-muted-foreground text-sm">
                 <Mail className="h-4 w-4" />
-                hello@naijapulse.ng
+                contact@pollnaija.com.ng
               </li>
               <li className="flex items-start gap-2 text-muted-foreground text-sm">
                 <MapPin className="h-4 w-4 mt-0.5" />

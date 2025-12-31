@@ -104,9 +104,9 @@ export function Header({ onLoginClick }: HeaderProps) {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-poppins font-bold text-lg">
-            N
+            P
           </div>
-          <span className="hidden sm:block font-poppins font-bold text-xl text-foreground">
+          <span className="block font-poppins font-bold text-lg text-foreground md:text-xl">
             Poll<span className="text-primary">Naija</span>
           </span>
         </Link>
