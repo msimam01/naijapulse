@@ -107,7 +107,7 @@ export function Header({ onLoginClick }: HeaderProps) {
             N
           </div>
           <span className="hidden sm:block font-poppins font-bold text-xl text-foreground">
-            Naija<span className="text-primary">Pulse</span>
+            Poll<span className="text-primary">Naija</span>
           </span>
         </Link>
 

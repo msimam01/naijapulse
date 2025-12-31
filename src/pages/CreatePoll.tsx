@@ -121,7 +121,7 @@ export default function CreatePoll() {
       // Get user profile for display_name
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('display_name')
+        .select('display_name, is_admin')
         .eq('id', user.id)
         .single();
 
@@ -197,7 +197,7 @@ export default function CreatePoll() {
         category: formData.category,
         duration_end: durationEnd?.toISOString() || null,
         creator_id: user.id,
-        creator_name: profile.display_name,
+        creator_name: profile.is_admin ? 'PollNaija' : profile.display_name,
         image_url: imageUrl,
       };
 

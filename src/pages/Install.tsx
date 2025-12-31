@@ -39,7 +39,7 @@ export default function Install() {
 
         {/* Title */}
         <h1 className="font-poppins text-3xl sm:text-4xl font-bold text-foreground mb-4">
-          Install NaijaPulse
+          Install PollNaija
         </h1>
 
         <p className="text-muted-foreground mb-8">
@@ -101,7 +101,7 @@ export default function Install() {
 
         {/* Back Link */}
         <Link to="/" className="text-primary hover:underline text-sm">
-          Back to NaijaPulse
+          Back to PollNaija
         </Link>
       </div>
     </div>

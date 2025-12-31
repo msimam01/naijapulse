@@ -512,7 +512,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         {/* Header with Adire Pattern */}
         <div className="relative h-20 gradient-hero adire-pattern flex items-center justify-center">
           <h2 className="text-xl font-poppins font-bold text-primary-foreground">
-            {language === "pidgin" ? "Enter NaijaPulse" : "Join NaijaPulse"}
+            {language === "pidgin" ? "Enter PollNaija" : "Join PollNaija"}
           </h2>
         </div>
 

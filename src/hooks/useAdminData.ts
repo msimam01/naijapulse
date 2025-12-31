@@ -93,6 +93,7 @@ export const useAdminData = () => {
             ...poll,
             vote_count: voteCount || 0,
             comment_count: commentCount || 0,
+            createdBy: poll.creator_name, // Map creator_name to createdBy
           };
         })
       );

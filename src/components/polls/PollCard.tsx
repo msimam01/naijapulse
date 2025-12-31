@@ -148,6 +148,11 @@ export function PollCard({ poll, index = 0 }: PollCardProps) {
                 <MessageCircle className="h-3.5 w-3.5" />
                 {poll.commentsCount}
               </span>
+              {poll.createdBy && (
+                <span className="text-xs text-muted-foreground">
+                  By {poll.createdBy}
+                </span>
+              )}
             </div>
             <span className="flex items-center gap-1 text-xs font-medium text-primary">
               <Clock className="h-3.5 w-3.5" />

@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminData } from "@/hooks/useAdminData";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useToast } from "@/hooks/use-toast";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminPolls } from "@/components/admin/AdminPolls";
@@ -17,6 +18,7 @@ type TabType = "dashboard" | "users" | "polls" | "reports" | "settings";
 export default function AdminPanel() {
   const { user } = useAuth();
   const { t, setLanguage } = useLanguage();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
@@ -102,15 +104,28 @@ export default function AdminPanel() {
     if (!user) return;
 
     setUpdating(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ display_name: displayName })
-      .eq('id', user.id);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ display_name: displayName })
+        .eq('id', user.id);
 
-    if (!error) {
-      // Success
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Your display name has been updated.',
+      });
+    } catch (error: any) {
+      console.error('Error updating settings:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update settings.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdating(false);
     }
-    setUpdating(false);
   };
 
   const handleRefresh = () => {

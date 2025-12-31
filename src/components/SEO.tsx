@@ -10,7 +10,7 @@ interface SEOProps {
 }
 
 export function SEO({
-  title = "NaijaPulse - Nigeria's #1 Public Opinion & Polling Platform",
+  title = "PollNaija - Nigeria's #1 Public Opinion & Polling Platform",
   description = "Join thousands of Nigerians sharing opinions on politics, entertainment, economy & more. Create polls, vote, and see what Naija is thinking today!",
   image = "/pwa-512x512.png",
   url = typeof window !== "undefined" ? window.location.href : "",
@@ -35,7 +35,7 @@ export function SEO({
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:site_name" content="NaijaPulse" />
+      <meta property="og:site_name" content="PollNaija" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />

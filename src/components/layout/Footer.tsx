@@ -27,8 +27,8 @@ export function Footer() {
                 <Vote className="h-5 w-5 text-primary-foreground" />
               </div>
               <span className="font-poppins font-bold text-xl">
-                <span className="text-primary">Naija</span>
-                <span className="text-foreground">Pulse</span>
+                <span className="text-primary">Poll</span>
+                <span className="text-foreground">Naija</span>
               </span>
             </Link>
             <p className="text-muted-foreground text-sm mb-4 max-w-xs">
@@ -127,7 +127,7 @@ export function Footer() {
       <div className="border-t border-border">
         <div className="container py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>© {currentYear} NaijaPulse. {t("footer.copyright")}</p>
+            <p>© {currentYear} PollNaija. {t("footer.copyright")}</p>
             <p className="text-xs">{t("footer.madeWith")}</p>
           </div>
         </div>

@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "NaijaPulse",
-        short_name: "NaijaPulse",
+        name: "PollNaija",
+        short_name: "PollNaija",
         description: "Nigeria's #1 Public Opinion & Polling Platform",
         theme_color: "#009A44",
         background_color: "#ffffff",

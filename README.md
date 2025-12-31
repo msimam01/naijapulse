@@ -1,6 +1,6 @@
-# NaijaPulse - Nigeria's #1 Public Opinion & Polling Platform
+# PollNaija - Nigeria's #1 Public Opinion & Polling Platform
 
-NaijaPulse is a modern, realtime polling platform built specifically for Nigerians. Create polls, vote, and see what Naija is thinking - all in realtime with no refresh needed!
+PollNaija is a modern, realtime polling platform built specifically for Nigerians. Create polls, vote, and see what Naija is thinking - all in realtime with no refresh needed!
 
 ## ✨ Features
 

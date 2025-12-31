@@ -359,7 +359,7 @@ export default function PollView() {
   return (
     <div className="container py-6 sm:py-10">
       <SEO
-        title={`${poll.title} | NaijaPulse`}
+        title={`${poll.title} | PollNaija`}
         description={poll.question}
         image={poll.image_url || "/pwa-512x512.png"}
         url={`/poll/${poll.id}`}
