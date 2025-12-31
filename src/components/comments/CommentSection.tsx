@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { ReportModal } from "@/components/ui/ReportModal";
+import { useRealtimeComments } from "@/hooks/useRealtimeComments";
 
 type Comment = Tables<'comments'>;
 
@@ -52,24 +53,12 @@ export default function CommentSection({ pollId, onCommentCountChange }: Comment
     return 'Guest';
   };
 
-  // Fetch comments and organize into threaded structure
-  const fetchComments = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('*')
-      .eq('poll_id', pollId)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching comments:', error);
-      return;
-    }
-
-    // Organize comments into threaded structure
+  // Organize comments into threaded structure
+  const organizeComments = useCallback((flatComments: Comment[]): CommentWithReplies[] => {
     const topLevelComments: CommentWithReplies[] = [];
     const commentMap = new Map<number, CommentWithReplies>();
 
-    data.forEach(comment => {
+    flatComments.forEach(comment => {
       const commentWithReplies: CommentWithReplies = { ...comment, replies: [] };
       commentMap.set(comment.id, commentWithReplies);
 
@@ -84,31 +73,31 @@ export default function CommentSection({ pollId, onCommentCountChange }: Comment
       }
     });
 
-    setComments(topLevelComments);
-    onCommentCountChange?.(data.length);
-  }, [pollId, onCommentCountChange]);
+    return topLevelComments.sort((a, b) =>
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+  }, []);
 
-  // Subscribe to realtime comments
+  // Handle realtime comment updates
+  const handleCommentUpdate = useCallback((pollId: string, updatedComments: Comment[]) => {
+    const organizedComments = organizeComments(updatedComments);
+    setComments(organizedComments);
+    onCommentCountChange?.(updatedComments.length);
+  }, [organizeComments, onCommentCountChange]);
+
+  // Use realtime comments hook
+  const { comments: flatComments } = useRealtimeComments({
+    pollId,
+    onCommentUpdate: handleCommentUpdate,
+  });
+
+  // Update organized comments when flat comments change
   useEffect(() => {
-    fetchComments();
+    const organizedComments = organizeComments(flatComments);
+    setComments(organizedComments);
+    onCommentCountChange?.(flatComments.length);
     setLoading(false);
-
-    const channel = supabase
-      .channel(`comments:${pollId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'comments',
-        filter: `poll_id=eq.${pollId}`,
-      }, () => {
-        fetchComments(); // Refetch to maintain threaded structure
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [pollId, fetchComments]);
+  }, [flatComments, organizeComments, onCommentCountChange]);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;

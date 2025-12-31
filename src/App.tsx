@@ -7,6 +7,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { LanguageProvider } from "@/hooks/useLanguage";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { Layout } from "@/components/layout/Layout";
 import Index from "./pages/Index";
 import CreatePoll from "./pages/CreatePoll";
@@ -20,34 +21,43 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Wrapper component to use hooks inside Router context
+const AppContent = () => {
+  useRealtimeNotifications(); // Global realtime notifications
+
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/create" element={<CreatePoll />} />
+        <Route path="/poll/:id" element={<PollView />} />
+        <Route path="/polls" element={<AllPolls />} />
+        <Route path="/category/:category" element={<CategoryPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/install" element={<Install />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Layout>
+  );
+};
+
 const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LanguageProvider>
-          <ThemeProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/create" element={<CreatePoll />} />
-                    <Route path="/poll/:id" element={<PollView />} />
-                    <Route path="/polls" element={<AllPolls />} />
-                    <Route path="/category/:category" element={<CategoryPage />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/admin" element={<AdminPanel />} />
-                    <Route path="/install" element={<Install />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Layout>
-              </BrowserRouter>
-            </TooltipProvider>
-          </ThemeProvider>
-        </LanguageProvider>
-      </AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <LanguageProvider>
+            <ThemeProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <AppContent />
+              </TooltipProvider>
+            </ThemeProvider>
+          </LanguageProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   </HelmetProvider>
 );

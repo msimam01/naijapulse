@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
+import { useRealtimeReports } from './useRealtimeReports';
 
 type Profile = Tables<'profiles'>;
 type Poll = Tables<'polls'>;
@@ -82,55 +83,49 @@ export const useAdminData = () => {
     }
   };
 
-  // Fetch all reports with content preview
-  const fetchReports = async () => {
-    try {
-      const { data: reportsData, error } = await supabase
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false });
+  // Enrich report with content preview
+  const enrichReport = async (report: Report): Promise<ReportWithContent> => {
+    if (report.target_type === 'poll') {
+      const { data: poll } = await supabase
+        .from('polls')
+        .select('title, question, creator_name')
+        .eq('id', report.target_id)
+        .single();
 
-      if (error) throw error;
+      return {
+        ...report,
+        poll_title: poll?.title,
+        poll_question: poll?.question,
+        creator_name: poll?.creator_name,
+      };
+    } else if (report.target_type === 'comment') {
+      const { data: comment } = await supabase
+        .from('comments')
+        .select('content, creator_name')
+        .eq('id', parseInt(report.target_id))
+        .single();
 
-      // Enrich reports with content preview
-      const enrichedReports: ReportWithContent[] = await Promise.all(
-        reportsData.map(async (report) => {
-          if (report.target_type === 'poll') {
-            const { data: poll } = await supabase
-              .from('polls')
-              .select('title, question, creator_name')
-              .eq('id', report.target_id)
-              .single();
-
-            return {
-              ...report,
-              poll_title: poll?.title,
-              poll_question: poll?.question,
-              creator_name: poll?.creator_name,
-            };
-          } else if (report.target_type === 'comment') {
-            const { data: comment } = await supabase
-              .from('comments')
-              .select('content, creator_name')
-              .eq('id', parseInt(report.target_id))
-              .single();
-
-            return {
-              ...report,
-              comment_content: comment?.content,
-              creator_name: comment?.creator_name,
-            };
-          }
-          return report;
-        })
-      );
-
-      setReports(enrichedReports);
-    } catch (err) {
-      console.error('Error fetching reports:', err);
-      setError('Failed to load reports');
+      return {
+        ...report,
+        comment_content: comment?.content,
+        creator_name: comment?.creator_name,
+      };
     }
+    return report;
   };
+
+  // Handle realtime report updates
+  const handleReportUpdate = async (updatedReports: Report[]) => {
+    const enrichedReports = await Promise.all(
+      updatedReports.map(enrichReport)
+    );
+    setReports(enrichedReports);
+  };
+
+  // Use realtime reports hook
+  const { reports: realtimeReports, refetch: refetchReports } = useRealtimeReports({
+    onReportUpdate: handleReportUpdate,
+  });
 
   // Fetch admin stats
   const fetchStats = async () => {
@@ -172,17 +167,17 @@ export const useAdminData = () => {
     await Promise.all([
       fetchUsers(),
       fetchPolls(),
-      fetchReports(),
       fetchStats(),
     ]);
 
+    // Reports are handled by realtime hook
     setLoading(false);
   };
 
   // Refresh specific data
   const refreshUsers = () => fetchUsers();
   const refreshPolls = () => fetchPolls();
-  const refreshReports = () => fetchReports();
+  const refreshReports = () => refetchReports();
   const refreshStats = () => fetchStats();
 
   useEffect(() => {

@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { Poll } from "@/components/polls/PollCard";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRealtimeVotes } from "@/hooks/useRealtimeVotes";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 
 type SupabasePoll = Tables<'polls'>;
 
@@ -117,6 +119,34 @@ export default function Index() {
 
     fetchPolls();
   }, []);
+
+  // Handle global vote updates for realtime percentage changes
+  const handleVoteUpdate = (pollId: string, updatedVotes: any[]) => {
+    setPolls(prev => prev.map(poll => {
+      if (poll.id === pollId) {
+        // Recalculate voteData for this poll
+        const voteDataMap: { [optionIndex: number]: number } = {};
+        updatedVotes.forEach(vote => {
+          voteDataMap[vote.option_index] = (voteDataMap[vote.option_index] || 0) + 1;
+        });
+
+        // Update total votes count
+        const totalVotes = updatedVotes.length;
+
+        return {
+          ...poll,
+          voteData: voteDataMap,
+          totalVotes,
+        };
+      }
+      return poll;
+    }));
+  };
+
+  // Use global realtime votes hook
+  const { votes: globalVotes } = useRealtimeVotes({
+    onVoteUpdate: handleVoteUpdate,
+  });
 
   // Subscribe to realtime updates
   useEffect(() => {

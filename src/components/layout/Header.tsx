@@ -113,13 +113,14 @@ export function Header({ onLoginClick }: HeaderProps) {
         {/* Search - Desktop */}
         <div className="hidden md:flex flex-1 max-w-md mx-4">
           <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
             <Input
               type="search"
               placeholder={t("common.search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-secondary border-0 focus-visible:ring-primary"
+              aria-label={t("common.search")}
             />
           </div>
         </div>
