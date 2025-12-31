@@ -49,7 +49,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (mounted) {
-        console.log('Initial session loaded:', !!session);
         setSession(session);
         setUser(session?.user ?? null);
       }
@@ -58,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, !!session);
 
         if (mounted) {
           setSession(session);
@@ -66,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           // Auto-create profile on authentication events
           if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-            console.log('AuthContext: Processing user sign in:', session.user.id);
+            // Processing user sign in
 
             try {
               // Check if profile already exists
@@ -81,13 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const userMeta = session.user.user_metadata;
                 const displayName = userMeta?.display_name || generateDisplayName(session.user);
                 const isAdmin = userMeta?.is_admin || false;
-
-                console.log('AuthContext: Creating new profile for user:', {
-                  id: session.user.id,
-                  displayName,
-                  isAdmin,
-                  hasMeta: !!userMeta?.display_name
-                });
 
                 // Create new profile
                 const { error } = await supabase.from('profiles').insert({
@@ -121,8 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
         console.error('Auth callback error:', error);
-      } else {
-        console.log('Session confirmed after callback:', !!data.session);
       }
     };
 

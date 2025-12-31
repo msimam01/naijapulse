@@ -81,7 +81,6 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
 
     setIsSubmitting(true);
     try {
-      console.log('AdminUsers: Sending magic link to:', formData.email);
 
       // Send magic link - this will create user if they don't exist
       const { error: authError } = await supabase.auth.signInWithOtp({
@@ -97,10 +96,8 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
       });
 
       if (authError) {
-        console.error('Auth error:', authError);
 
         // Fallback: Try the working signUp approach with auto-generated password
-        console.log('Trying fallback signUp approach...');
         const tempPassword = `TempPass${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
 
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -117,12 +114,10 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
         });
 
         if (signUpError) {
-          console.error('SignUp fallback also failed:', signUpError);
           throw signUpError;
         }
 
         if (signUpData.user) {
-          console.log('User created with signUp, magic link workflow will be available');
           toast({
             title: 'Success',
             description: 'User created! They can now sign in with magic link.',
@@ -135,7 +130,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({
         }
       }
 
-      console.log('Magic link sent successfully');
+
       toast({
         title: 'Success',
         description: 'Magic link sent to new user!',

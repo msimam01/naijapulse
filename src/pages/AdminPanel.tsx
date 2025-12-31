@@ -1,21 +1,27 @@
 import { useState, useEffect } from "react";
-import { Shield, Users, BarChart3, AlertTriangle, Loader2, BarChart4 } from "lucide-react";
+import { Shield, Users, BarChart3, AlertTriangle, Loader2, BarChart4, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminData } from "@/hooks/useAdminData";
+import { useLanguage } from "@/hooks/useLanguage";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminPolls } from "@/components/admin/AdminPolls";
 import { AdminReports } from "@/components/admin/AdminReports";
 
-type TabType = "dashboard" | "users" | "polls" | "reports";
+type TabType = "dashboard" | "users" | "polls" | "reports" | "settings";
 
 export default function AdminPanel() {
   const { user } = useAuth();
+  const { t, setLanguage } = useLanguage();
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+  const [displayName, setDisplayName] = useState("");
+  const [updating, setUpdating] = useState(false);
 
   const {
     users,
@@ -29,16 +35,31 @@ export default function AdminPanel() {
     refreshStats,
   } = useAdminData();
 
+  // Load display name when settings tab is active
+  useEffect(() => {
+    if (activeTab === "settings" && user) {
+      const loadDisplayName = async () => {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          setDisplayName(profile.display_name || "");
+        }
+      };
+      loadDisplayName();
+    }
+  }, [activeTab, user]);
+
   // Check if user is admin
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) {
-        console.log('AdminPanel: No user found');
         setAdminCheckLoading(false);
         return;
       }
-
-      console.log('AdminPanel: Checking admin status for user:', user.id);
 
       try {
         const { data: profile, error } = await supabase
@@ -48,8 +69,6 @@ export default function AdminPanel() {
           .single();
 
         if (error) {
-          console.error('AdminPanel: Error checking admin status:', error);
-          console.log('AdminPanel: User is not admin or profile not found');
           setIsAdmin(false);
           setAdminCheckLoading(false);
           window.location.href = '/';
@@ -57,21 +76,17 @@ export default function AdminPanel() {
         }
 
         const admin = profile?.is_admin || false;
-        console.log('AdminPanel: User admin status:', admin);
 
         if (!admin) {
-          console.log('AdminPanel: User is not admin, redirecting');
           setIsAdmin(false);
           setAdminCheckLoading(false);
           window.location.href = '/';
           return;
         }
 
-        console.log('AdminPanel: User is admin, showing panel');
         setIsAdmin(true);
         setAdminCheckLoading(false);
       } catch (error) {
-        console.error('AdminPanel: Unexpected error:', error);
         setIsAdmin(false);
         setAdminCheckLoading(false);
         window.location.href = '/';
@@ -81,6 +96,29 @@ export default function AdminPanel() {
 
     checkAdmin();
   }, [user]);
+
+  // Handle settings update
+  const handleUpdateSettings = async () => {
+    if (!user) return;
+
+    setUpdating(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ display_name: displayName })
+      .eq('id', user.id);
+
+    if (!error) {
+      // Success
+    }
+    setUpdating(false);
+  };
+
+  const handleRefresh = () => {
+    refreshUsers();
+    refreshPolls();
+    refreshReports();
+    refreshStats();
+  };
 
   // Show loading or redirect for non-admin
   if (adminCheckLoading) {
@@ -105,14 +143,8 @@ export default function AdminPanel() {
     { id: "users" as TabType, label: "Users", icon: Users },
     { id: "polls" as TabType, label: "Polls", icon: BarChart3 },
     { id: "reports" as TabType, label: "Reports", icon: AlertTriangle },
+    { id: "settings" as TabType, label: "Settings", icon: Settings },
   ];
-
-  const handleRefresh = () => {
-    refreshUsers();
-    refreshPolls();
-    refreshReports();
-    refreshStats();
-  };
 
   return (
     <div className="container py-6 sm:py-10">
@@ -165,7 +197,9 @@ export default function AdminPanel() {
                   ? "Users Management"
                   : activeTab === "polls"
                   ? "Polls Management"
-                  : "Reports Management"}
+                  : activeTab === "reports"
+                  ? "Reports Management"
+                  : "Account Settings"}
               </h1>
               <p className="text-muted-foreground mt-1">
                 {activeTab === "dashboard"
@@ -174,7 +208,9 @@ export default function AdminPanel() {
                   ? "Manage user accounts and permissions"
                   : activeTab === "polls"
                   ? "Review and manage polls"
-                  : "Review and moderate reported content"}
+                  : activeTab === "reports"
+                  ? "Review and moderate reported content"
+                  : "Manage your account settings"}
               </p>
             </div>
             {activeTab !== "dashboard" && (
@@ -211,6 +247,60 @@ export default function AdminPanel() {
               loading={dataLoading}
               onRefresh={refreshReports}
             />
+          )}
+
+          {activeTab === "settings" && (
+            <div className="bg-card rounded-xl border border-border p-6 animate-fade-up delay-100">
+              <h2 className="font-poppins font-semibold text-lg text-foreground mb-6">
+                Account Settings
+              </h2>
+
+              <div className="space-y-6">
+                {/* Display Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="adminDisplayName">Display Name</Label>
+                  <Input
+                    id="adminDisplayName"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Enter your display name"
+                  />
+                </div>
+
+                {/* Language Preference */}
+                <div className="space-y-2">
+                  <Label>Language Preference</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={t("language") === "en" ? "default" : "outline"}
+                      onClick={() => setLanguage("en")}
+                      size="sm"
+                    >
+                      English
+                    </Button>
+                    <Button
+                      variant={t("language") === "pidgin" ? "default" : "outline"}
+                      onClick={() => setLanguage("pidgin")}
+                      size="sm"
+                    >
+                      Pidgin
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <Button onClick={handleUpdateSettings} disabled={updating} className="w-full sm:w-auto">
+                  {updating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>
