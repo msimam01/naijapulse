@@ -68,17 +68,17 @@ export function FeaturedPolls({ polls }: FeaturedPollsProps) {
                   <TrendingUp className="h-3 w-3" />
                   {t("poll.trending")}
                 </Badge>
-                <Badge variant="outline" className="bg-primary-foreground/10 text-primary-foreground border-primary-foreground/20">
+                <Badge variant="outline" className="bg-primary-foreground/10 text-white-foreground border-primary/50">
                   {mainPoll.category}
                 </Badge>
               </div>
 
               {/* Bottom */}
               <div className="space-y-3">
-                <h3 className="font-poppins font-bold text-xl sm:text-2xl text-primary-foreground line-clamp-2 group-hover:underline">
+                <h3 className="font-poppins font-bold text-xl sm:text-2xl text-white line-clamp-2 group-hover:underline">
                   {mainPoll.title}
                 </h3>
-                <div className="flex items-center gap-4 text-sm text-primary-foreground/80">
+                <div className="flex items-center gap-4 text-sm text-white/80">
                   <span className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
                     {mainPoll.totalVotes.toLocaleString()} {t("poll.votes")}
