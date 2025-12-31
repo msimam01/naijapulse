@@ -22,7 +22,7 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
 
   // Convert Supabase poll to Poll interface
-  const mapPoll = (poll: SupabasePoll, voteDataMap?: { [pollId: string]: { [optionIndex: number]: number } }): Poll => {
+  const mapPoll = (poll: SupabasePoll, voteDataMap?: { [pollId: string]: { [optionIndex: number]: number } }, commentsCount?: number): Poll => {
     // For real Supabase data, options are stored as JSON array of strings
     const options = Array.isArray(poll.options) ? poll.options as string[] : [];
     const now = new Date();
@@ -31,8 +31,13 @@ export default function Index() {
       (end > now ? `${Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60))}h` : "Ended") :
       "Ongoing";
 
+    // Calculate total votes from voteDataMap if available, otherwise use stored count
+    const voteData = voteDataMap?.[poll.id];
+    const calculatedTotalVotes = voteData ? Object.values(voteData).reduce((sum, count) => sum + count, 0) : 0;
+    const totalVotes = calculatedTotalVotes || poll.vote_count || 0;
+
     // Trending logic: recent polls with votes
-    const isTrending = poll.vote_count > 0 &&
+    const isTrending = totalVotes > 0 &&
       (new Date(poll.created_at).getTime() > now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     return {
@@ -41,8 +46,8 @@ export default function Index() {
       question: poll.question,
       category: poll.category,
       options,
-      totalVotes: poll.vote_count || 0,
-      commentsCount: poll.comment_count || 0,
+      totalVotes,
+      commentsCount: commentsCount ?? poll.comment_count ?? 0,
       timeRemaining,
       createdBy: poll.creator_name,
       isTrending,
@@ -110,8 +115,31 @@ export default function Index() {
         voteDataMap[vote.poll_id][vote.option_index] = (voteDataMap[vote.poll_id][vote.option_index] || 0) + 1;
       });
 
+      // Fetch comment counts for all polls
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('comments')
+        .select('poll_id')
+        .in('poll_id', pollIds);
+
+      if (commentsError) {
+        console.error('Error fetching comments:', commentsError);
+      }
+
+      // Count comments per poll
+      const commentCountMap: { [pollId: string]: number } = {};
+      commentsData?.forEach(comment => {
+        commentCountMap[comment.poll_id] = (commentCountMap[comment.poll_id] || 0) + 1;
+      });
+
       if (recentPolls) {
-        const mappedPolls = recentPolls.map(poll => mapPoll(poll, voteDataMap));
+        const mappedPolls = recentPolls.map(poll => {
+          const voteData = voteDataMap?.[poll.id];
+          const calculatedTotalVotes = voteData ? Object.values(voteData).reduce((sum, count) => sum + count, 0) : 0;
+          const totalVotes = calculatedTotalVotes || poll.vote_count || 0;
+          const commentsCount = commentCountMap[poll.id] || poll.comment_count || 0;
+
+          return mapPoll(poll, voteDataMap, commentsCount);
+        });
         setPolls(mappedPolls);
       }
       setLoading(false);
