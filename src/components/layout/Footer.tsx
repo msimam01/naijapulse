@@ -16,7 +16,7 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-card border-t border-border">
+    <footer className="hidden md:block bg-card border-t border-border">
       {/* Main Footer */}
       <div className="container py-12 sm:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">

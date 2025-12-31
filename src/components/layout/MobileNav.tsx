@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { Home, PlusCircle, User, BarChart3, Compass } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MobileNavProps {
   onLoginClick: () => void;
@@ -9,6 +10,7 @@ interface MobileNavProps {
 export function MobileNav({ onLoginClick }: MobileNavProps) {
   const location = useLocation();
   const { t } = useLanguage();
+  const { isAuthenticated } = useAuth();
 
   const navItems = [
     { href: "/", icon: Home, label: t("nav.home") },
@@ -37,13 +39,23 @@ export function MobileNav({ onLoginClick }: MobileNavProps) {
             </Link>
           );
         })}
-        <button
-          onClick={onLoginClick}
-          className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[56px] text-muted-foreground hover:text-foreground"
-        >
-          <User className="h-5 w-5" />
-          <span className="text-[10px] font-medium">{t("nav.account")}</span>
-        </button>
+        {isAuthenticated ? (
+          <Link
+            to="/dashboard"
+            className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[56px] text-muted-foreground hover:text-foreground"
+          >
+            <User className="h-5 w-5" />
+            <span className="text-[10px] font-medium">{t("nav.account")}</span>
+          </Link>
+        ) : (
+          <button
+            onClick={onLoginClick}
+            className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[56px] text-muted-foreground hover:text-foreground"
+          >
+            <User className="h-5 w-5" />
+            <span className="text-[10px] font-medium">{t("nav.account")}</span>
+          </button>
+        )}
       </div>
     </nav>
   );
