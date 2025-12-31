@@ -178,23 +178,23 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
 
             <Button
-              onClick={() => setStep("phone-input")}
-              className="w-full h-14 btn-touch gap-3 text-base justify-start px-4"
+              disabled
+              className="w-full h-14 btn-touch gap-3 text-base justify-start px-4 opacity-60 cursor-not-allowed"
               variant="outline"
             >
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Phone className="h-5 w-5 text-primary" />
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                <Phone className="h-5 w-5 text-muted-foreground" />
               </div>
               <div className="text-left">
                 <div className="font-semibold">
-                  {language === "pidgin" ? "Use Phone Number" : "Phone Number"}
+                  {language === "pidgin" ? "Phone Number" : "Phone Number"}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {language === "pidgin" ? "We go text you code" : "We'll text you a code"}
+                  {language === "pidgin" ? "Coming Soon" : "Coming Soon"}
                 </div>
               </div>
-              <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                {language === "pidgin" ? "Recommended" : "Recommended"}
+              <span className="ml-auto text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full">
+                {language === "pidgin" ? "Coming Soon" : "Coming Soon"}
               </span>
             </Button>
 
