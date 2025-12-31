@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
 import { ReportModal } from "@/components/ui/ReportModal";
+import { EmojiPicker } from "@/components/ui/EmojiPicker";
 import { useRealtimeComments } from "@/hooks/useRealtimeComments";
 
 type Comment = Tables<'comments'>;
@@ -245,12 +246,19 @@ export default function CommentSection({ pollId, onCommentCountChange }: Comment
           {/* Reply form */}
           {replyingTo === comment.id && (
             <div className="mt-3 ml-4 space-y-2">
-              <Textarea
-                placeholder="Write a reply..."
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                className="min-h-[80px] resize-none"
-              />
+              <div className="relative">
+                <Textarea
+                  placeholder="Write a reply..."
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  className="min-h-[80px] resize-none pr-12"
+                />
+                <div className="absolute bottom-2 right-2">
+                  <EmojiPicker
+                    onEmojiSelect={(emoji) => setReplyText(prev => prev + emoji)}
+                  />
+                </div>
+              </div>
               <div className="flex gap-2">
                 <Button
                   onClick={() => handleSubmitReply(comment.id)}
@@ -307,12 +315,19 @@ export default function CommentSection({ pollId, onCommentCountChange }: Comment
           <MessageCircle className="h-4 w-4" />
           <span className="text-sm">Add a comment</span>
         </div>
-        <Textarea
-          placeholder="Share your thoughts..."
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          className="min-h-[100px] resize-none"
-        />
+        <div className="relative">
+          <Textarea
+            placeholder="Wetin you think? Share your thoughts..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            className="min-h-[100px] resize-none pr-12"
+          />
+          <div className="absolute bottom-2 right-2">
+            <EmojiPicker
+              onEmojiSelect={(emoji) => setNewComment(prev => prev + emoji)}
+            />
+          </div>
+        </div>
         <div className="flex justify-end">
           <Button
             onClick={handleSubmitComment}
