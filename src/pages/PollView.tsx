@@ -25,7 +25,7 @@ import { ResultChart } from "@/components/polls/ResultChart";
 import { SEO } from "@/components/SEO";
 import CommentSection from "@/components/comments/CommentSection";
 import { ShareButtons } from "@/components/ui/ShareButtons";
-import { useRealtimeVotes } from "@/hooks/useRealtimeVotes";
+
 
 type Poll = Tables<'polls'>;
 type Vote = Tables<'votes'>;
@@ -190,15 +190,43 @@ export default function PollView() {
     fetchPoll();
   }, [id, checkIfVoted, toast]);
 
-  // Use realtime votes hook for this poll
-  const { votes: realtimeVotes } = useRealtimeVotes({
-    pollId: id || undefined,
-  });
-
-  // Update local votes state when realtime votes change
+  // Subscribe to realtime votes (direct approach)
   useEffect(() => {
-    setVotes(realtimeVotes);
-  }, [realtimeVotes]);
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`votes:${id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'votes',
+        filter: `poll_id=eq.${id}`,
+      }, (payload) => {
+        setVotes(prev => {
+          const newVote = payload.new as Vote;
+          // Check if vote already exists (prevent duplicates)
+          const exists = prev.find(v => v.poll_id === newVote.poll_id && v.user_id === newVote.user_id && v.guest_id === newVote.guest_id);
+          if (exists) return prev;
+
+          return [...prev, newVote];
+        });
+      })
+      .subscribe();
+
+    // Initial fetch of votes
+    const fetchVotes = async () => {
+      const { data } = await supabase
+        .from('votes')
+        .select('*')
+        .eq('poll_id', id);
+      if (data) setVotes(data);
+    };
+    fetchVotes();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
 
   const handleVote = async () => {
     if (selectedOption === null || !poll) {

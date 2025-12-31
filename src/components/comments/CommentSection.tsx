@@ -78,26 +78,64 @@ export default function CommentSection({ pollId, onCommentCountChange }: Comment
     );
   }, []);
 
-  // Handle realtime comment updates
-  const handleCommentUpdate = useCallback((pollId: string, updatedComments: Comment[]) => {
-    const organizedComments = organizeComments(updatedComments);
-    setComments(organizedComments);
-    onCommentCountChange?.(updatedComments.length);
-  }, [organizeComments, onCommentCountChange]);
-
-  // Use realtime comments hook
-  const { comments: flatComments } = useRealtimeComments({
-    pollId,
-    onCommentUpdate: handleCommentUpdate,
-  });
-
-  // Update organized comments when flat comments change
+  // Subscribe to realtime comments (direct approach like votes)
   useEffect(() => {
-    const organizedComments = organizeComments(flatComments);
-    setComments(organizedComments);
-    onCommentCountChange?.(flatComments.length);
-    setLoading(false);
-  }, [flatComments, organizeComments, onCommentCountChange]);
+    const channel = supabase
+      .channel(`comments:${pollId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'comments',
+        filter: `poll_id=eq.${pollId}`,
+      }, (payload) => {
+        setComments(prev => {
+          const newComment = payload.new as Comment;
+          // Check if comment already exists
+          const exists = prev.find(c => c.id === newComment.id);
+          if (exists) return prev;
+
+          // Add to flat comments and re-organize
+          const allComments = [...prev.flatMap(c => [c, ...(c.replies || [])]), newComment];
+          return organizeComments(allComments);
+        });
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'comments',
+        filter: `poll_id=eq.${pollId}`,
+      }, (payload) => {
+        setComments(prev => {
+          const deletedComment = payload.old as Comment;
+          // Remove from flat comments and re-organize
+          const allComments = prev.flatMap(c => [c, ...(c.replies || [])]).filter(c => c.id !== deletedComment.id);
+          return organizeComments(allComments);
+        });
+      })
+      .subscribe();
+
+    // Initial fetch and organize
+    const fetchComments = async () => {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('poll_id', pollId)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        const organizedComments = organizeComments(data);
+        setComments(organizedComments);
+        onCommentCountChange?.(data.length);
+      }
+      setLoading(false);
+    };
+
+    fetchComments();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [pollId, organizeComments, onCommentCountChange]);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
