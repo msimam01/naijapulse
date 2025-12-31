@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
 import AllPolls from "./pages/AllPolls";
 import CategoryPage from "./pages/CategoryPage";
+import SearchResults from "./pages/SearchResults";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +33,7 @@ const AppContent = () => {
         <Route path="/create" element={<CreatePoll />} />
         <Route path="/poll/:id" element={<PollView />} />
         <Route path="/polls" element={<AllPolls />} />
+        <Route path="/search" element={<SearchResults />} />
         <Route path="/category/:category" element={<CategoryPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin" element={<AdminPanel />} />

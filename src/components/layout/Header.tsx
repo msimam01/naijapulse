@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Search, Menu, X, Globe, User, Plus, LayoutGrid, LogOut, Shield } from "lucide-react";
+import { Menu, X, Globe, User, Plus, LayoutGrid, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,17 +112,11 @@ export function Header({ onLoginClick }: HeaderProps) {
 
         {/* Search - Desktop */}
         <div className="hidden md:flex flex-1 max-w-md mx-4">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <Input
-              type="search"
-              placeholder={t("common.search")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-secondary border-0 focus-visible:ring-primary"
-              aria-label={t("common.search")}
-            />
-          </div>
+          <SearchInput
+            placeholder={t("common.search")}
+            className="w-full"
+            showClear={false}
+          />
         </div>
 
         {/* Desktop Navigation */}
@@ -277,16 +271,11 @@ export function Header({ onLoginClick }: HeaderProps) {
         <div className="lg:hidden border-t border-border bg-background animate-slide-up">
           <div className="container py-4 space-y-4">
             {/* Mobile Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder={t("common.search")}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-secondary border-0"
-              />
-            </div>
+            <SearchInput
+              placeholder={t("common.search")}
+              className="w-full"
+              showClear={false}
+            />
 
             {/* Mobile Nav Links */}
             <nav className="flex flex-col gap-1">

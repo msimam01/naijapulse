@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { Badge } from "@/components/ui/badge";
 
 const popularSearches = [
@@ -15,12 +14,10 @@ const popularSearches = [
 ];
 
 export function SearchSection() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    // TODO: Implement search functionality
-    console.log("Searching for:", query);
+  const handlePopularSearch = (query: string) => {
+    navigate(`/search?q=${encodeURIComponent(query)}`);
   };
 
   return (
@@ -34,14 +31,11 @@ export function SearchSection() {
         </p>
 
         {/* Search Input */}
-        <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input
-            type="text"
+        <div className="mb-6">
+          <SearchInput
             placeholder="Search polls..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 pr-4 h-14 text-base rounded-xl border-2 border-border focus:border-primary bg-card"
+            size="lg"
+            className="w-full max-w-md mx-auto"
           />
         </div>
 
@@ -54,7 +48,7 @@ export function SearchSection() {
                 key={term}
                 variant="secondary"
                 className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors px-3 py-1.5 text-sm"
-                onClick={() => handleSearch(term)}
+                onClick={() => handlePopularSearch(term)}
               >
                 {term}
               </Badge>
