@@ -85,10 +85,6 @@ CREATE POLICY "Admins can update sponsored status" ON polls
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE) OR
     auth.uid() = creator_id
-  )
-  WITH CHECK (
-    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE) OR
-    auth.uid() = creator_id
   );
 
 -- Create votes table

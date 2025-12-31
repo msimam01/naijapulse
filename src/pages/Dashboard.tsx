@@ -155,24 +155,45 @@ export default function Dashboard() {
 
       // Fetch stats for my-polls tab
       if (activeTab === "my-polls") {
-        const { data: userPolls } = await supabase
+        // Count polls created by user
+        const { data: userPolls, error: pollsError } = await supabase
           .from('polls')
-          .select('vote_count, comment_count')
+          .select('id')
           .eq('creator_id', user.id);
 
-        const totalPolls = userPolls?.length || 0;
-        const totalVotes = userPolls?.reduce((sum, p) => sum + (p.vote_count || 0), 0) || 0;
-        const totalComments = userPolls?.reduce((sum, p) => sum + (p.comment_count || 0), 0) || 0;
+        if (pollsError) {
+          console.error('Error fetching user polls:', pollsError);
+        }
 
-        // Add votes from user's votes
-        const { data: userVotes } = await supabase
+        const totalPolls = userPolls?.length || 0;
+
+        // Count votes cast by user
+        const { data: userVotes, error: votesError } = await supabase
           .from('votes')
           .select('id')
           .eq('user_id', user.id);
 
+        if (votesError) {
+          console.error('Error fetching user votes:', votesError);
+        }
+
+        const totalVotes = userVotes?.length || 0;
+
+        // Count comments made by user
+        const { data: userComments, error: commentsError } = await supabase
+          .from('comments')
+          .select('id')
+          .eq('user_id', user.id);
+
+        if (commentsError) {
+          console.error('Error fetching user comments:', commentsError);
+        }
+
+        const totalComments = userComments?.length || 0;
+
         setStats({
           totalPolls,
-          totalVotes: totalVotes + (userVotes?.length || 0),
+          totalVotes,
           totalComments,
         });
       }

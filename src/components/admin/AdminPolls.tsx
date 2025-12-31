@@ -49,13 +49,18 @@ export const AdminPolls: React.FC<AdminPollsProps> = ({
 
   const handleToggleSponsored = async (poll: Poll) => {
     try {
+      console.log('Attempting to toggle sponsored status for poll:', poll.id);
       const { error } = await supabase
         .from('polls')
         .update({ is_sponsored: !poll.is_sponsored })
         .eq('id', poll.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Sponsored toggle error:', error);
+        throw error;
+      }
 
+      console.log('Sponsored status updated successfully');
       toast({
         title: 'Success',
         description: `Poll ${!poll.is_sponsored ? 'marked as' : 'unmarked as'} sponsored.`,
@@ -63,10 +68,10 @@ export const AdminPolls: React.FC<AdminPollsProps> = ({
 
       onRefresh();
     } catch (error: any) {
-      console.error('Error updating poll:', error);
+      console.error('Error updating sponsored status:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update poll.',
+        description: error.message || 'Failed to update sponsored status. You may not have admin privileges.',
         variant: 'destructive',
       });
     }
