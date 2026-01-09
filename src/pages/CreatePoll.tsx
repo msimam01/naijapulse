@@ -119,14 +119,38 @@ export default function CreatePoll() {
       }
 
       // Get user profile for display_name
-      const { data: profile, error: profileError } = await supabase
+      let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('display_name, is_admin')
         .eq('id', user.id)
         .single();
 
       if (profileError || !profile) {
-        throw new Error('Unable to fetch user profile. Please try logging out and back in.');
+        // Try to create profile if it doesn't exist
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            display_name: user.email?.split('@')[0] || 'Naija User',
+            is_admin: false,
+          });
+
+        if (createError) {
+          throw new Error('Unable to create user profile. Please try logging out and back in.');
+        }
+
+        // Fetch the newly created profile
+        const { data: newProfile, error: newProfileError } = await supabase
+          .from('profiles')
+          .select('display_name, is_admin')
+          .eq('id', user.id)
+          .single();
+
+        if (newProfileError || !newProfile) {
+          throw new Error('Unable to fetch newly created profile.');
+        }
+
+        profile = newProfile;
       }
 
       // Validate form
@@ -153,39 +177,47 @@ export default function CreatePoll() {
       // Upload image if provided
       let imageUrl = null;
       if (formData.image) {
-        // Validate file
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!allowedTypes.includes(formData.image.type)) {
-          throw new Error('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+        try {
+          // Validate file
+          const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+          if (!allowedTypes.includes(formData.image.type)) {
+            throw new Error('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+          }
+
+          const maxSize = 5 * 1024 * 1024; // 5MB
+          if (formData.image.size > maxSize) {
+            throw new Error('Image must be smaller than 5MB');
+          }
+
+          // Generate unique filename
+          const fileExt = formData.image.name.split('.').pop();
+          const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+
+          // Upload to Supabase Storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('poll-images')
+            .upload(`public/${fileName}`, formData.image, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.warn('Image upload failed, continuing without image:', uploadError.message);
+            // Don't throw error, just continue without image
+            imageUrl = null;
+          } else {
+            // Get public URL
+            const { data: publicUrlData } = supabase.storage
+              .from('poll-images')
+              .getPublicUrl(`public/${fileName}`);
+
+            imageUrl = publicUrlData.publicUrl;
+          }
+        } catch (error) {
+          console.warn('Image upload failed, continuing without image:', error);
+          // Continue without image if upload fails
+          imageUrl = null;
         }
-
-        const maxSize = 5 * 1024 * 1024; // 5MB
-        if (formData.image.size > maxSize) {
-          throw new Error('Image must be smaller than 5MB');
-        }
-
-        // Generate unique filename
-        const fileExt = formData.image.name.split('.').pop();
-        const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('poll-images')
-          .upload(`public/${fileName}`, formData.image, {
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) {
-          throw new Error('Failed to upload image: ' + uploadError.message);
-        }
-
-        // Get public URL
-        const { data: publicUrlData } = supabase.storage
-          .from('poll-images')
-          .getPublicUrl(`public/${fileName}`);
-
-        imageUrl = publicUrlData.publicUrl;
       }
 
       // Prepare poll data
@@ -211,7 +243,6 @@ export default function CreatePoll() {
       if (pollError) {
         throw pollError;
       }
-
       toast({
         title: t("toast.pollCreated"),
         description: t("toast.pollCreatedDesc"),
